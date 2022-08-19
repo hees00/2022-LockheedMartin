@@ -1,0 +1,15 @@
+# LOCKED_MARTIN requirements
+# USAGE : pip install -r requirements.txt
+
+# BASE ----------------------------------
+numpy
+opencv-python
+opencv-contrib-python
+tk
+pillow
+scipy
+pyzbar
+
+# Tello ---------------------------------
+tellopy
+av==8.0.3
