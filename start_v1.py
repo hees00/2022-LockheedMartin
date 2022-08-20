@@ -1,31 +1,56 @@
-import sys
-import traceback
 import tellopy
 import av
-import cv2 # for avoidance of pylint error
+import cv2
 import numpy
 import time
 from utils import *
 
-######################################################
-width = 640
-height = 480
-FRAME = 40
+##################### CONFIGURATION #########################
+width = 700
+height = 700
+
+VIEW_FRAME = 60
+CAPTURE_FRAME = VIEW_FRAME - 20
+SKIP_FRAME = 300
+
+INIT_STREAM = 300
 
 PATH = {
   'images': './images/',
   'videos': './videos/',
   'result': './results/real/',
 }
-######################################################
+
+ACTIVITY = {
+  'takeoff': 0,
+  'red': 1,
+  'b_g': 2,                     # Detect blue or green 
+  'qr': 3,
+  'land': 4,
+}
+
+SWITCH = {
+  'takeoff': True,
+  'down': True,
+  'up': True,
+  'clockwise': True,
+}
+
+SLEEP = {
+    'takeoff': 1,
+    'down': 2,
+    'clockwise': 1,
+    'stop_red': 3,
+    'stop_b_g': 1,
+    'stop_qr': 1,
+}
+###########################################################
 
 def handler(event, sender, data, **args):
     drone = sender
     if event is drone.EVENT_FLIGHT_DATA:
         print(data)
 
-startCounter = 0
-detect = False
 
 # CONNECT TO TELLO
 drone = tellopy.Tello()
@@ -37,6 +62,9 @@ drone.start_video()
 
 retry = 3
 container = None
+view_frame = 0
+activity = 0
+
 while container is None and 0 < retry:
     retry -= 1
     try:
@@ -45,92 +73,91 @@ while container is None and 0 < retry:
         print(ave)
         print('retry...')
 
-frame_skip = 500
-view_frame = 0
-cnt_frame = 0
-per_frame = 33
-start_option = 0
 
 while True:
     for frame in container.decode(video = 0):
-        if 0 < frame_skip:
-            frame_skip = frame_skip - 1
+        if 0 < SKIP_FRAME:
+            SKIP_FRAME = SKIP_FRAME - 1
             continue
-        
+
         start_time = time.time()
         image = cv2.cvtColor(numpy.array(frame.to_image()), cv2.COLOR_RGB2BGR)
+        
+        #######################################################################
+        if activity == ACTIVITY['takeoff']:
+            if SWITCH['takeoff'] is True:
+                drone.takeoff()
+                activity = ACTIVITY['red']
 
-        if startCounter == 0:               # RED DETECTION
-            drone.takeoff()
-            cnt_frame += 1
-            if cnt_frame % per_frame < 2:
-                cnt_frame = 0
-                drone.down(20)              # DRONE DOWN 50cm
-                if cv2.waitKey(1) & 0xFF == ord('q'):
-                    drone.land()
-                    break
-
-                detect, image = identify_color(image, 'red')
-
-                if detect:
-                    view_frame += 1
-
-                    if view_frame == FRAME:
-                        view_frame = 0
-                        drone.stop()        # DRONE STOP
-                        time.sleep(3000)       # WAIT 3s
-
-                        startCounter = 1    # RED DETECTION -> BLUE OR GREEN DETECTION
-                        break
-
-                    elif view_frame == FRAME // 2:
-                            cv2.imwrite(PATH['result'] + 'red_marker.jpg', frame)
-
-                cv2.imshow('Original', image)
-
-        elif startCounter == 1:             # BLUE OR GREEN DETECTION
-            detect, image = identify_color(image, 'blue')
-            cnt_frame += 1
-            if cnt_frame % per_frame < 2:
-                cnt_frame = 0
-                drone.clockwise(10)              # DRONE DOWN 50cm
-            if detect:
-                view_frame += 1
-
-                if view_frame == FRAME:
-                    view_frame =0
-                    drone.stop()          # DRONE STOP
-                    time.sleep(500)         # WAIT 1s
-                    startCounter = 2      # BLUE OR GREEN DETECTION -> QR CODE DETECTION
-                    break
-                elif view_frame == FRAME // 2:
-                        cv2.imwrite(PATH['result'] + 'blue_marker.jpg', frame)
-
-            cv2.imshow('Original', image)
-
-        elif startCounter == 2:             # QR CODE DETECTION
-            cnt_frame += 1
-            if cnt_frame % per_frame < 2:
-                cnt_frame = 0
-                drone.clockwise(10)              # DRONE DOWN 50cm
-            detect, image = read_QR(image)
+        elif activity == ACTIVITY['red']:
+            if SWITCH['down'] is True:
+                drone.down(50)
+                time.sleep(SLEEP['down'])
+                SWITCH['down'] = False
             
-            if detect:
+            detect, image = identify_color(image, 'red')
+            if detect is True:
                 view_frame += 1
 
-                if view_frame == FRAME:
+                if view_frame == CAPTURE_FRAME:
+                    drone.stop()
+                    time.sleep(SLEEP['stop_red'])
+                    cv2.imwrite(PATH['result'] + 'red_marker.jpg', image)
+
+                elif view_frame == VIEW_FRAME:
+                    activity == ACTIVITY['b_g']
                     view_frame = 0
-                    drone.stop()            # DRONE STOP
-                    time.sleep(500)           # WAIT 1s
-                    drone.land()            # DRONE LAND
-                    drone.streamoff()       # VIDEO STEAM OFF
-                    break
+            
+        elif activity == ACTIVITY['b_g']:
+            if SWITCH['clockwise'] is True:
+                drone.clockwise(60)
+                time.sleep(SLEEP['clockwise'])
+                SWITCH['clockwise'] = False
 
-                elif view_frame == FRAME // 2:
-                        cv2.imwrite(PATH['result'] + 'qr_marker.jpg', frame)
+            detect, image = identify_color(image, 'blue')
+            if detect is True:
+                view_frame += 1
 
-            cv2.imshow('Original', image)
+                if view_frame == CAPTURE_FRAME:
+                    drone.stop()
+                    time.sleep(0.5)
+                    cv2.imwrite(PATH['result'] + 'blue_marker.jpg', image)
 
+                elif view_frame == VIEW_FRAME:
+                    activity == ACTIVITY['qr']
+                    SWITCH['clockwise'] = True
+                    view_frame = 0
+
+        elif activity == ACTIVITY['qr']:
+            if SWITCH['clockwise'] is True:
+                drone.clockwise(60)
+                time.sleep(SLEEP['clockwise'])
+                SWITCH['clockwise'] = False
+
+            detect, image = read_QR(image)
+            if detect is True:
+                view_frame += 1
+
+                if view_frame == CAPTURE_FRAME:
+                    drone.stop()
+                    time.sleep(SLEEP['stop_qr'])
+                    cv2.imwrite(PATH['result'] + 'qr_code.jpg', image)
+
+                elif view_frame == VIEW_FRAME:
+                    activity == ACTIVITY['land']
+                    view_frame = 0
+
+        elif activity == ACTIVITY['land']:
+            drone.land()
+
+        if SWITCH['takeoff'] is True:
+            time.sleep(SLEEP['takeoff'])
+            SWITCH['takeoff'] = False
+
+        cv2.imshow('TEAM : Arming', image)
+        #######################################################################
+
+        # FORCE QUIT ( END PROGRAM )
         if cv2.waitKey(1) & 0xFF == ord('q'):
             drone.land()
             break
@@ -139,4 +166,4 @@ while True:
             time_base = 1.0/60
         else:
             time_base = frame.time_base
-        frame_skip = int((time.time() - start_time)/time_base)
+        SKIP_FRAME = int((time.time() - start_time)/time_base)

@@ -1,3 +1,4 @@
+from threading import Thread
 import cv2
 import numpy as np
 from pyzbar.pyzbar import decode
@@ -11,6 +12,48 @@ COLOR = {
   'green': [[0, 50, 0], [50, 255, 50]],
 }
 ############################################
+
+class Drone():
+    def __init__(self):
+        self.r_val = 0
+        self.l_val = 0
+        self.up_val = 0
+        self.down_val = 0
+        self.f_val = 0
+        self.b_val = 0
+        self.c_wise = 0
+        self.cc_wise = 0
+
+    def takeoff(self):
+        print('Drone take off.')
+
+    def land(self):
+        print('Drone land.')
+
+    def stop(self, val):
+        for i in range(val):
+            print(f'Drone Stop now.')
+
+    def up(self, val):
+        self.up_val = val
+        for i in range(val):
+            print(f'Drone Up {i + 1}\t|\tUP : {self.up_val} ')
+
+    def down(self, val):
+        self.down_val = val
+        for i in range(val):
+            print(f'Drone down {i + 1}\t|\tDOWN : {self.up_val} ')
+
+    def clockwise(self, val):
+        self.c_wise = val
+        for i in range(val):
+            print(f'Clockwise {i + 1}\t|\tc_wise : {self.down_val}')
+
+    def counter_clockwise(self, val):
+        self.c_wise = val
+        for i in range(val):
+            print(f'Clockwise {i + 1}\t|\tc_wise : {self.down_val}')
+
 
 '''
 DETECT QR CODE
@@ -106,7 +149,4 @@ def identify_color(frame, color):
             detect = True
 
     return detect, frame
-
-
-    
 
