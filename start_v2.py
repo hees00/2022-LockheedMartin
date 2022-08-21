@@ -45,8 +45,8 @@ SWITCH = {
 }
 
 SLEEP = {
-    'takeoff': 1,
-    'down': 1,
+    'takeoff': 3,
+    'down': 2,
     'clockwise': 1,
     'stop_red': 3,
     'stop_b_g': 1,
@@ -89,7 +89,6 @@ while container is None and 0 < retry:
     except av.AVError as ave:
         print(ave)
         print('retry...')
-
 
 while True:
     for frame in container.decode(video = 0):

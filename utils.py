@@ -8,7 +8,7 @@ from scipy.spatial import distance as dist
 FONT = cv2.FONT_HERSHEY_SIMPLEX
 
 COLOR = {
-  'red': [[0, 0, 50], [60, 60, 255]],
+  'red': [[0, 0, 50], [50, 50, 255]],
   'blue': [[50, 0, 0], [255, 50, 50]],
   'green': [[0, 50, 0], [50, 255, 50]],
 }
@@ -21,10 +21,10 @@ def stop(drone):
     drone.right_y = 0.0
 
 def send_rc_control(drone, lr, fb, ud, yv):
-    drone.right_x = lr
-    drone.right_y = fb
-    drone.left_x = yv
-    drone.left_y = ud
+    drone.right_x = lr / 100.0
+    drone.right_y = fb / 100.0
+    drone.left_x = yv / 100.0
+    drone.left_y = ud / 100.0
 
 '''
 DETECT QR CODE
