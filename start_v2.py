@@ -75,178 +75,180 @@ def handler(event, sender, data, **args):
         print(data)
 
 
-# CONNECT TO TELLO
-drone = tellopy.Tello()
+def main():
 
-# drone.subscribe(drone.EVENT_FLIGHT_DATA, handler)
-drone.connect()
-drone.wait_for_connection(60.0)
-drone.start_video()
+        # CONNECT TO TELLO
+        drone = tellopy.Tello()
 
-while container is None and 0 < retry:
-    retry -= 1
-    try:
-        container = av.open(drone.get_video_stream())
-    except av.AVError as ave:
-        print(ave)
-        print('retry...')
+        # drone.subscribe(drone.EVENT_FLIGHT_DATA, handler)
+        drone.connect()
+        drone.wait_for_connection(60.0)
+        drone.start_video()
 
-while True:
-    for frame in container.decode(video = 0):
-        if 0 < SKIP_FRAME:
-            SKIP_FRAME = SKIP_FRAME - 1
-            continue
+        while container is None and 0 < retry:
+            retry -= 1
+            try:
+                container = av.open(drone.get_video_stream())
+            except av.AVError as ave:
+                print(ave)
+                print('retry...')
 
-        start_time = time.time()
-        image = cv2.cvtColor(numpy.array(frame.to_image()), cv2.COLOR_RGB2BGR)
-        
-        ############################## MOVE  & DETECT ###############################
-        if activity == ACTIVITY['takeoff']:                                             # TAKE OFF : 이륙
-            if SWITCH['takeoff'] is True:
-                drone.takeoff()
-                ''' time.sleep(SLEEP['takeoff']) '''
-                sec = cnt_frame / PER_FRAME
-                if sec < SLEEP['takeoff']:
-                    cnt_frame += 1
-                    # STREAMING
-                    cv2.imshow('TEAM : Arming', image)
+        while True:
+            for frame in container.decode(video = 0):
+                if 0 < SKIP_FRAME:
+                    SKIP_FRAME = SKIP_FRAME - 1
                     continue
 
-                SWITCH['takeoff'] = False
-                activity = ACTIVITY['red']
+                start_time = time.time()
+                image = cv2.cvtColor(numpy.array(frame.to_image()), cv2.COLOR_RGB2BGR)
+                
+                ############################## MOVE  & DETECT ###############################
+                if activity == ACTIVITY['takeoff']:                                             # TAKE OFF : 이륙
+                    if SWITCH['takeoff'] is True:
+                        drone.takeoff()
+                        ''' time.sleep(SLEEP['takeoff']) '''
+                        sec = cnt_frame / PER_FRAME
+                        if sec < SLEEP['takeoff']:
+                            cnt_frame += 1
+                            # STREAMING
+                            cv2.imshow('TEAM : Arming', image)
+                            continue
 
-        elif activity == ACTIVITY['red']:                                               # DETECT RED : 빨간색 사각형 탐지
+                        SWITCH['takeoff'] = False
+                        activity = ACTIVITY['red']
 
-            detect, image = identify_color(image, 'red')
+                elif activity == ACTIVITY['red']:                                               # DETECT RED : 빨간색 사각형 탐지
 
-            if SWITCH['down'] is True:
-                if first_down: 
-                    drone.down(VELOCITY['down'])
-                    first_down = False
-                else: drone.down(VELOCITY['down_s'])
-                ''' time.sleep(SLEEP['down']) '''
-                sec = cnt_frame / PER_FRAME
-                if sec < SLEEP['down']:
-                    cnt_frame += 1
-                    # STREAMING
-                    cv2.imshow('TEAM : Arming', image)
-                    continue
+                    detect, image = identify_color(image, 'red')
 
-                cnt_frame = 0
-            
-            if detect is True:
-                view_frame += 1
-                SWITCH['down'] = False
+                    if SWITCH['down'] is True:
+                        if first_down: 
+                            drone.down(VELOCITY['down'])
+                            first_down = False
+                        else: drone.down(VELOCITY['down_s'])
+                        ''' time.sleep(SLEEP['down']) '''
+                        sec = cnt_frame / PER_FRAME
+                        if sec < SLEEP['down']:
+                            cnt_frame += 1
+                            # STREAMING
+                            cv2.imshow('TEAM : Arming', image)
+                            continue
 
-                if view_frame == CAPTURE_FRAME:
-                    stop(drone)
-                    ''' time.sleep(SLEEP['stop_red']) '''
-                    sec = cnt_frame / PER_FRAME
-                    if sec < SLEEP['stop_red']:
-                        cnt_frame += 1
-                        # STREAMING
-                        cv2.imshow('TEAM : Arming', image)
-                        continue
+                        cnt_frame = 0
+                    
+                    if detect is True:
+                        view_frame += 1
+                        SWITCH['down'] = False
 
-                    cnt_frame = 0
-                    cv2.imwrite(PATH['result'] + 'red_marker.jpg', image)
+                        if view_frame == CAPTURE_FRAME:
+                            stop(drone)
+                            ''' time.sleep(SLEEP['stop_red']) '''
+                            sec = cnt_frame / PER_FRAME
+                            if sec < SLEEP['stop_red']:
+                                cnt_frame += 1
+                                # STREAMING
+                                cv2.imshow('TEAM : Arming', image)
+                                continue
 
-                elif view_frame == VIEW_FRAME:
-                    activity == ACTIVITY['b_g']
-                    view_frame = 0
+                            cnt_frame = 0
+                            cv2.imwrite(PATH['result'] + 'red_marker.jpg', image)
 
-        elif activity == ACTIVITY['b_g']:                                               # DETECT BLUE OR GREEN : 파란색 또는 초록색 사각형 탐지
+                        elif view_frame == VIEW_FRAME:
+                            activity == ACTIVITY['b_g']
+                            view_frame = 0
 
-            detect, image = identify_color(image, 'blue')
+                elif activity == ACTIVITY['b_g']:                                               # DETECT BLUE OR GREEN : 파란색 또는 초록색 사각형 탐지
 
-            if SWITCH['clockwise'] is True:
-                drone.clockwise(VELOCITY['clockwise'])
-                ''' time.sleep(SLEEP['clockwise']) '''
-                sec = cnt_frame / PER_FRAME
-                if sec < SLEEP['clockwise']:
-                    cnt_frame += 1
-                    # STREAMING
-                    cv2.imshow('TEAM : Arming', image) 
-                    continue
+                    detect, image = identify_color(image, 'blue')
 
-                cnt_frame = 0
+                    if SWITCH['clockwise'] is True:
+                        drone.clockwise(VELOCITY['clockwise'])
+                        ''' time.sleep(SLEEP['clockwise']) '''
+                        sec = cnt_frame / PER_FRAME
+                        if sec < SLEEP['clockwise']:
+                            cnt_frame += 1
+                            # STREAMING
+                            cv2.imshow('TEAM : Arming', image) 
+                            continue
 
-            if detect is True:
-                view_frame += 1
-                SWITCH['clockwise'] = False
+                        cnt_frame = 0
 
-                if view_frame == CAPTURE_FRAME:
-                    stop(drone)
+                    if detect is True:
+                        view_frame += 1
+                        SWITCH['clockwise'] = False
 
-                    ''' time.sleep(SLEEP['stop_b_g']) '''
-                    sec = cnt_frame / PER_FRAME
-                    if sec < SLEEP['b_g']:
-                        cnt_frame += 1
-                        # STREAMING
-                        cv2.imshow('TEAM : Arming', image)
-                        continue
+                        if view_frame == CAPTURE_FRAME:
+                            stop(drone)
 
-                    cnt_frame = 0
-                    cv2.imwrite(PATH['result'] + 'blue_marker.jpg', image)
+                            ''' time.sleep(SLEEP['stop_b_g']) '''
+                            sec = cnt_frame / PER_FRAME
+                            if sec < SLEEP['b_g']:
+                                cnt_frame += 1
+                                # STREAMING
+                                cv2.imshow('TEAM : Arming', image)
+                                continue
 
-                elif view_frame == VIEW_FRAME:
-                    activity == ACTIVITY['qr']
-                    SWITCH['clockwise'] = True
-                    view_frame = 0
+                            cnt_frame = 0
+                            cv2.imwrite(PATH['result'] + 'blue_marker.jpg', image)
 
-        elif activity == ACTIVITY['qr']:                                                # DETECT QR CODE : QR 코드 탐지
+                        elif view_frame == VIEW_FRAME:
+                            activity == ACTIVITY['qr']
+                            SWITCH['clockwise'] = True
+                            view_frame = 0
 
-            detect, image = read_QR(image)
+                elif activity == ACTIVITY['qr']:                                                # DETECT QR CODE : QR 코드 탐지
 
-            if SWITCH['clockwise'] is True:
-                drone.clockwise(VELOCITY['clockwise'])
+                    detect, image = read_QR(image)
 
-                ''' time.sleep(SLEEP['clockwise'])'''
-                sec = cnt_frame / PER_FRAME
-                if sec < SLEEP['stop_qr']:
-                    cnt_frame += 1
-                    # STREAMING
-                    cv2.imshow('TEAM : Arming', image)
-                    continue
+                    if SWITCH['clockwise'] is True:
+                        drone.clockwise(VELOCITY['clockwise'])
 
-                cnt_frame = 0
+                        ''' time.sleep(SLEEP['clockwise'])'''
+                        sec = cnt_frame / PER_FRAME
+                        if sec < SLEEP['stop_qr']:
+                            cnt_frame += 1
+                            # STREAMING
+                            cv2.imshow('TEAM : Arming', image)
+                            continue
 
-            if detect is True:
-                view_frame += 1
-                SWITCH['clockwise'] = False
+                        cnt_frame = 0
 
-                if view_frame == CAPTURE_FRAME:
-                    stop(drone)
+                    if detect is True:
+                        view_frame += 1
+                        SWITCH['clockwise'] = False
 
-                    ''' time.sleep(SLEEP['stop_qr']) '''
-                    sec = cnt_frame / PER_FRAME
-                    if sec < SLEEP['stop_qr']:
-                        # STREAMING
-                        cv2.imshow('TEAM : Arming', image)
-                        cnt_frame += 1
-                        continue
+                        if view_frame == CAPTURE_FRAME:
+                            stop(drone)
 
-                    cnt_frame = 0
-                    cv2.imwrite(PATH['result'] + 'qr_code.jpg', image)
+                            ''' time.sleep(SLEEP['stop_qr']) '''
+                            sec = cnt_frame / PER_FRAME
+                            if sec < SLEEP['stop_qr']:
+                                # STREAMING
+                                cv2.imshow('TEAM : Arming', image)
+                                cnt_frame += 1
+                                continue
 
-                elif view_frame == VIEW_FRAME:
-                    activity == ACTIVITY['land']
-                    view_frame = 0
+                            cnt_frame = 0
+                            cv2.imwrite(PATH['result'] + 'qr_code.jpg', image)
 
-        elif activity == ACTIVITY['land']:                                              # LAND : 착륙
-            drone.land()
+                        elif view_frame == VIEW_FRAME:
+                            activity == ACTIVITY['land']
+                            view_frame = 0
 
-        # STREAMING
-        cv2.imshow('TEAM : Arming', image)
-        ############################################################################
+                elif activity == ACTIVITY['land']:                                              # LAND : 착륙
+                    drone.land()
 
-        # FORCE QUIT ( END PROGRAM )
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            drone.land()
-            break
+                # STREAMING
+                cv2.imshow('TEAM : Arming', image)
+                ############################################################################
 
-        if frame.time_base < 1.0/60:
-            time_base = 1.0/60
-        else:
-            time_base = frame.time_base
-        SKIP_FRAME = int((time.time() - start_time)/time_base)
+                # FORCE QUIT ( END PROGRAM )
+                if cv2.waitKey(1) & 0xFF == ord('q'):
+                    drone.land()
+                    break
+
+                if frame.time_base < 1.0/60:
+                    time_base = 1.0/60
+                else:
+                    time_base = frame.time_base
+                SKIP_FRAME = int((time.time() - start_time)/time_base)
