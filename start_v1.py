@@ -6,6 +6,7 @@ import cv2 # for avoidance of pylint error
 import numpy
 import time
 from utils import *
+import threading
 
 ######################################################
 width = 640
@@ -24,119 +25,136 @@ def handler(event, sender, data, **args):
     if event is drone.EVENT_FLIGHT_DATA:
         print(data)
 
-startCounter = 0
-detect = False
 
-# CONNECT TO TELLO
-drone = tellopy.Tello()
+def first_mission():
+    drone.stop()        # DRONE STOP
+    print("1")
+    time.sleep(1)       # WAIT 1s
+    print("2")
+    time.sleep(1)       # WAIT 1s
+    print("3")
+    time.sleep(1)       # WAIT 1s
 
-# drone.subscribe(drone.EVENT_FLIGHT_DATA, handler)
-drone.connect()
-drone.wait_for_connection(60.0)
-drone.start_video()
+    startCounter = 1    # RED DETECTION -> BLUE OR GREEN DETECTION
 
-retry = 3
-container = None
-while container is None and 0 < retry:
-    retry -= 1
-    try:
-        container = av.open(drone.get_video_stream())
-    except av.AVError as ave:
-        print(ave)
-        print('retry...')
 
-frame_skip = 500
-view_frame = 0
-cnt_frame = 0
-per_frame = 33
-start_option = 0
+def main():
+    global drone
 
-while True:
-    for frame in container.decode(video = 0):
-        if 0 < frame_skip:
-            frame_skip = frame_skip - 1
-            continue
-        
-        start_time = time.time()
-        image = cv2.cvtColor(numpy.array(frame.to_image()), cv2.COLOR_RGB2BGR)
+    startCounter = 0
+    detect = False
 
-        if startCounter == 0:               # RED DETECTION
-            drone.takeoff()
-            cnt_frame += 1
-            if cnt_frame % per_frame < 2:
-                cnt_frame = 0
-                drone.down(20)              # DRONE DOWN 50cm
-                if cv2.waitKey(1) & 0xFF == ord('q'):
-                    drone.land()
-                    break
+    # CONNECT TO TELLO
+    drone = tellopy.Tello()
 
-                detect, image = identify_color(image, 'red')
+    # drone.subscribe(drone.EVENT_FLIGHT_DATA, handler)
+    drone.connect()
+    drone.wait_for_connection(60.0)
+    drone.start_video()
 
+    drone.takeoff()
+
+    retry = 3
+    container = None
+    while container is None and 0 < retry:
+        retry -= 1
+        try:
+            container = av.open(drone.get_video_stream())
+        except av.AVError as ave:
+            print(ave)
+            print('retry...')
+
+    frame_skip = 500
+    view_frame = 0
+    cnt_frame = 0
+    per_frame = 33
+    start_option = 0
+    cv2.namedWindow('Original')
+
+    while True:
+        for frame in container.decode(video = 0):
+            if 0 < frame_skip:
+                frame_skip = frame_skip - 1
+                continue
+            
+            start_time = time.time()
+            image = cv2.cvtColor(numpy.array(frame.to_image()), cv2.COLOR_RGB2BGR)
+
+            if startCounter == 0:               # RED DETECTION
+
+                cnt_frame += 1
+                if cnt_frame % per_frame < 2:
+                    cnt_frame = 0
+                    drone.down(20)              # DRONE DOWN 50cm
+                    if cv2.waitKey(1) & 0xFF == ord('q'):
+                        drone.land()
+                        break
+
+                    detect, image = identify_color(image, 'red')
+
+                    if detect:
+                        view_frame += 1
+
+                        if view_frame == FRAME:
+                            view_frame = 0
+                            m1 =threading.Thread(group=None, target = first_mission, name=None)
+                            m1.start()
+                            break
+
+                        elif view_frame == FRAME // 2:
+                                cv2.imwrite(PATH['result'] + 'red_marker.jpg', frame)
+
+                cv2.imshow('Original', image)
+
+            elif startCounter == 1:             # BLUE OR GREEN DETECTION
+                detect, image = identify_color(image, 'blue')
+                cnt_frame += 1
+                if cnt_frame % per_frame < 2:
+                    cnt_frame = 0
+                    drone.clockwise(10)              # DRONE DOWN 50cm
+                if detect:
+                    view_frame += 1
+
+                    if view_frame == FRAME:
+                        view_frame =0
+                        drone.stop()          # DRONE STOP
+                        time.sleep(500)         # WAIT 1s
+                        startCounter = 2      # BLUE OR GREEN DETECTION -> QR CODE DETECTION
+                        break
+                    elif view_frame == FRAME // 2:
+                            cv2.imwrite(PATH['result'] + 'blue_marker.jpg', frame)
+
+                cv2.imshow('Original', image)
+
+            elif startCounter == 2:             # QR CODE DETECTION
+                cnt_frame += 1
+                if cnt_frame % per_frame < 2:
+                    cnt_frame = 0
+                    drone.clockwise(10)              # DRONE DOWN 50cm
+                detect, image = read_QR(image)
+                
                 if detect:
                     view_frame += 1
 
                     if view_frame == FRAME:
                         view_frame = 0
-                        drone.stop()        # DRONE STOP
-                        time.sleep(3000)       # WAIT 3s
-
-                        startCounter = 1    # RED DETECTION -> BLUE OR GREEN DETECTION
+                        drone.stop()            # DRONE STOP
+                        time.sleep(500)           # WAIT 1s
+                        drone.land()            # DRONE LAND
+                        drone.streamoff()       # VIDEO STEAM OFF
                         break
 
                     elif view_frame == FRAME // 2:
-                            cv2.imwrite(PATH['result'] + 'red_marker.jpg', frame)
+                            cv2.imwrite(PATH['result'] + 'qr_marker.jpg', frame)
 
                 cv2.imshow('Original', image)
 
-        elif startCounter == 1:             # BLUE OR GREEN DETECTION
-            detect, image = identify_color(image, 'blue')
-            cnt_frame += 1
-            if cnt_frame % per_frame < 2:
-                cnt_frame = 0
-                drone.clockwise(10)              # DRONE DOWN 50cm
-            if detect:
-                view_frame += 1
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                drone.land()
+                break
 
-                if view_frame == FRAME:
-                    view_frame =0
-                    drone.stop()          # DRONE STOP
-                    time.sleep(500)         # WAIT 1s
-                    startCounter = 2      # BLUE OR GREEN DETECTION -> QR CODE DETECTION
-                    break
-                elif view_frame == FRAME // 2:
-                        cv2.imwrite(PATH['result'] + 'blue_marker.jpg', frame)
-
-            cv2.imshow('Original', image)
-
-        elif startCounter == 2:             # QR CODE DETECTION
-            cnt_frame += 1
-            if cnt_frame % per_frame < 2:
-                cnt_frame = 0
-                drone.clockwise(10)              # DRONE DOWN 50cm
-            detect, image = read_QR(image)
-            
-            if detect:
-                view_frame += 1
-
-                if view_frame == FRAME:
-                    view_frame = 0
-                    drone.stop()            # DRONE STOP
-                    time.sleep(500)           # WAIT 1s
-                    drone.land()            # DRONE LAND
-                    drone.streamoff()       # VIDEO STEAM OFF
-                    break
-
-                elif view_frame == FRAME // 2:
-                        cv2.imwrite(PATH['result'] + 'qr_marker.jpg', frame)
-
-            cv2.imshow('Original', image)
-
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            drone.land()
-            break
-
-        if frame.time_base < 1.0/60:
-            time_base = 1.0/60
-        else:
-            time_base = frame.time_base
-        frame_skip = int((time.time() - start_time)/time_base)
+            if frame.time_base < 1.0/60:
+                time_base = 1.0/60
+            else:
+                time_base = frame.time_base
+            frame_skip = int((time.time() - start_time)/time_base)
