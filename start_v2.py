@@ -3,14 +3,15 @@ import av
 import cv2
 import numpy
 import time
-from utils import *
+from utils import identify_color, read_QR, stop
 
 
 '''
 예상 문제점
 
 1. time.sleep을 했을 때, 영상 스트리밍은 ? → continue로 해결
-2. 만약, cv2.imshow를 맨 아래에 놓는다면 continue 사용 시 이미지 출력 X → sleep 하는 부분 내에 추가로 cv2.imshow를 넣어줌
+2. 만약, cv2.imshow를 맨 아래에 놓는다면 continue 사용 시 이미지 출력 X → sleep 하는 부분(if 문) 내에 추가로 cv2.imshow를 넣어줌
+3. Blue or Green 탐지할 때, 단순 clockwise로만 했을 때 찾지 못할 경우 → 
 
 '''
 
@@ -170,7 +171,6 @@ while True:
 
                 cnt_frame = 0
 
-            
             if detect is True:
                 view_frame += 1
                 SWITCH['clockwise'] = False

@@ -184,7 +184,4 @@ while True:
         drone.land()
         break
 
-
-
-
 cv2.destroyAllWindows()

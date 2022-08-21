@@ -5,6 +5,11 @@ import numpy as np
 import time
 from utils import *
 
+'''
+OpenCv test를 위한 파일
+
+'''
+
 ######################################################
 width = 640
 height = 480

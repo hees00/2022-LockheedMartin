@@ -1,6 +1,5 @@
 import cv2
 import numpy as np
-import pygame
 from pyzbar.pyzbar import decode
 from scipy.spatial import distance as dist
 
@@ -119,45 +118,5 @@ def identify_color(frame, color):
             detect = True
 
     return detect, frame
-
-def key_init():
-    pygame.init()
-    window = pygame.display.set_mode((400, 400))
-
-def getKey(keyName):
-    ans = False
-    for eve in pygame.event.get():  pass
-    keyInput = pygame.key.get_pressed()
-    myKey = getattr(pygame, 'K_{}'.format(keyName))
-
-    if keyInput[myKey]:
-        ans = True
-    
-    pygame.display.update()
-
-    return ans
-
-def getKeyboardInput(drone):
-    lr, fb, ud, yv = 0, 0, 0, 0
-    speed = 50 / 100.0
-
-    if getKey("LEFT"): lr = -speed
-    elif getKey("RIGHT"): lr = speed
-
-    if getKey("UP"): fb = speed
-    elif getKey("DOWN"): fb = -speed
-
-    if getKey("w"): ud = speed
-    elif getKey("s"): ud = -speed
-
-    if getKey("a"): yv = speed
-    elif getKey("d"): yv = -speed
-
-    if getKey("r"): drone.takeoff()
-    if getKey("e"): drone.land()
-    if getKey("f"): stop(drone)
-
-
-    return [lr, fb, ud, yv]
 
 
