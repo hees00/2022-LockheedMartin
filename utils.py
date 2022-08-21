@@ -6,6 +6,7 @@ from scipy.spatial import distance as dist
 
 ############################################
 FONT = cv2.FONT_HERSHEY_SIMPLEX
+
 COLOR = {
   'red': [[0, 0, 50], [60, 60, 255]],
   'blue': [[50, 0, 0], [255, 50, 50]],
@@ -75,7 +76,7 @@ def Label(frame, points, label):
     point2 = (x + w, y + h)
 
     # Bounding Box 그리기
-    cv2.rectangle(frame, point1, point2, (255, 0, 0), 3)
+    cv2.rectangle(frame, point1, point2, (255, 0, 0), 2)
 
     # 중심 찾기
     centroid_1= int((x + x + w) / 2)
