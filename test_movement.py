@@ -5,6 +5,22 @@ import numpy
 import time
 from utils import key_init, getKeyboardInput, send_rc_control
 
+'''
+Keyboard를 이용하여 Drone을 조종.
+
+Keyboard의 KEY 값을 입력 받으면 드론이 VIDEO streaming도 하고, 동시에 움직임
+
+↑ : forward
+↓ : back
+← : left
+→ : right
+
+w : up
+s : down
+a : counter-clockwise
+d : clockwise
+'''
+
 key_init()
 # CONNECT TO TELLO
 drone = tellopy.Tello()
