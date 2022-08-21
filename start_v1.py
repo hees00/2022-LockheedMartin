@@ -10,6 +10,7 @@ from utils import *
 예상 문제점
 
 1. time.sleep을 했을 때, 영상 스트리밍은 ? → continue로 해결
+2. 만약, cv2.imshow를 맨 아래에 놓는다면 continue 사용 시 이미지 출력 X → sleep 하는 부분 내에 추가로 cv2.imshow를 넣어줌
 
 '''
 
@@ -64,6 +65,7 @@ cnt_frame = 0
 activity = 0
 sec = 0
 ###########################################################
+
 def handler(event, sender, data, **args):
     drone = sender
     if event is drone.EVENT_FLIGHT_DATA:
@@ -132,7 +134,7 @@ while True:
                 view_frame += 1
 
                 if view_frame == CAPTURE_FRAME:
-                    drone.stop()
+                    stop(drone)
                     ''' time.sleep(SLEEP['stop_red']) '''
                     sec = cnt_frame / PER_FRAME
                     if sec < SLEEP['stop_red']:
@@ -170,7 +172,7 @@ while True:
                 view_frame += 1
 
                 if view_frame == CAPTURE_FRAME:
-                    drone.stop()
+                    stop(drone)
 
                     ''' time.sleep(SLEEP['stop_b_g']) '''
                     sec = cnt_frame / PER_FRAME
@@ -208,7 +210,7 @@ while True:
                 view_frame += 1
 
                 if view_frame == CAPTURE_FRAME:
-                    drone.stop(3)
+                    stop(drone)
 
                     ''' time.sleep(SLEEP['stop_qr']) '''
                     sec = cnt_frame / PER_FRAME

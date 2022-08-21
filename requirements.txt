@@ -9,6 +9,7 @@ tk
 pillow
 scipy
 pyzbar
+pygame
 
 # Tello ---------------------------------
 tellopy

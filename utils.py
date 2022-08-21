@@ -1,6 +1,6 @@
-from threading import Thread
 import cv2
 import numpy as np
+import pygame
 from pyzbar.pyzbar import decode
 from scipy.spatial import distance as dist
 
@@ -13,47 +13,17 @@ COLOR = {
 }
 ############################################
 
-class Drone():
-    def __init__(self):
-        self.r_val = 0
-        self.l_val = 0
-        self.up_val = 0
-        self.down_val = 0
-        self.f_val = 0
-        self.b_val = 0
-        self.c_wise = 0
-        self.cc_wise = 0
+def stop(drone):
+    drone.left_x = 0.0
+    drone.left_y = 0.0
+    drone.right_x = 0.0
+    drone.right_y = 0.0
 
-    def takeoff(self):
-        print('Drone take off.')
-
-    def land(self):
-        print('Drone land.')
-
-    def stop(self, val):
-        for i in range(val):
-            print(f'Drone Stop now.')
-
-    def up(self, val):
-        self.up_val = val
-        for i in range(val):
-            print(f'Drone Up {i + 1}\t|\tUP : {self.up_val} ')
-
-    def down(self, val):
-        self.down_val = val
-        for i in range(val):
-            print(f'Drone down {i + 1}\t|\tDOWN : {self.up_val} ')
-
-    def clockwise(self, val):
-        self.c_wise = val
-        for i in range(val):
-            print(f'Clockwise {i + 1}\t|\tc_wise : {self.down_val}')
-
-    def counter_clockwise(self, val):
-        self.c_wise = val
-        for i in range(val):
-            print(f'Clockwise {i + 1}\t|\tc_wise : {self.down_val}')
-
+def send_rc_control(drone, lr, fb, ud, yv):
+    drone.right_x = lr
+    drone.right_y = fb
+    drone.left_x = yv
+    drone.left_y = ud
 
 '''
 DETECT QR CODE
@@ -90,12 +60,11 @@ def read_QR(frame):
         print(e)
 
 '''
-Detect RECTANGLE AND COLOR
+Draw rectangle and text
 
 @params   frame: numpy형식의 frames
+@params   points: contour
 @params   coolr: 식별할 color name
-
-return    Bounding box + color가 추가된 image
 
 '''
 
@@ -149,4 +118,44 @@ def identify_color(frame, color):
             detect = True
 
     return detect, frame
+
+def key_init():
+    pygame.init()
+    window = pygame.display.set_mode((400, 400))
+
+def getKey(keyName):
+    ans = False
+    for eve in pygame.event.get():  pass
+    keyInput = pygame.key.get_pressed()
+    myKey = getattr(pygame, 'K_{}'.format(keyName))
+
+    if keyInput[myKey]:
+        ans = True
+    
+    pygame.display.update()
+
+    return ans
+
+def getKeyboardInput(drone):
+    lr, fb, ud, yv = 0, 0, 0, 0
+    speed = 50 / 100.0
+
+    if getKey("LEFT"): lr = -speed
+    elif getKey("RIGHT"): lr = speed
+
+    if getKey("UP"): fb = speed
+    elif getKey("DOWN"): fb = -speed
+
+    if getKey("w"): ud = speed
+    elif getKey("s"): ud = -speed
+
+    if getKey("a"): yv = speed
+    elif getKey("d"): yv = -speed
+
+    if getKey("q"): drone.land()
+    if getKey("e"): drone.land()
+
+
+    return [lr, fb, ud, yv]
+
 
