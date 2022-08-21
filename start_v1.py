@@ -98,7 +98,7 @@ while True:
         start_time = time.time()
         image = cv2.cvtColor(numpy.array(frame.to_image()), cv2.COLOR_RGB2BGR)
         
-        ############################# MOVE  & DETECT ###############################
+        ############################## MOVE  & DETECT ###############################
         if activity == ACTIVITY['takeoff']:                                             # TAKE OFF : 이륙
             if SWITCH['takeoff'] is True:
                 drone.takeoff()
@@ -232,19 +232,7 @@ while True:
 
         # STREAMING
         cv2.imshow('TEAM : Arming', image)
-
-        # AFTER TAKE OFF, SLEEP
-        if SWITCH['takeoff'] is True:
-            
-            ''' time.sleep(SLEEP['takeoff']) '''
-            sec = cnt_frame / PER_FRAME
-            if sec < SLEEP['takeoff']:
-                cnt_frame += 1
-                continue
-
-            cnt_frame = 0
-            SWITCH['takeoff'] = False
-        ###########################################################################
+        ############################################################################
 
         # FORCE QUIT ( END PROGRAM )
         if cv2.waitKey(1) & 0xFF == ord('q'):
