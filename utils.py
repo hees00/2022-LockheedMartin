@@ -101,10 +101,10 @@ return    Bounding box + color가 추가된 image
 def identify_color(frame, color):
     detect = False
     color = color.lower()
-    lower_red = np.array(COLOR[color][0])
-    upper_red = np.array(COLOR[color][1])
+    lower_color = np.array(COLOR[color][0])
+    upper_color = np.array(COLOR[color][1])
 
-    mask = cv2.inRange(frame, lower_red, upper_red)
+    mask = cv2.inRange(frame, lower_color, upper_color)
     mask = cv2.erode(mask, None)
 
     contours,_ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
