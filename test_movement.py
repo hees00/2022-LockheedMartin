@@ -3,8 +3,9 @@ import av
 import cv2
 import numpy
 import time
-from utils import getKeyboardInput, send_rc_control
+from utils import key_init, getKeyboardInput, send_rc_control
 
+key_init()
 # CONNECT TO TELLO
 drone = tellopy.Tello()
 

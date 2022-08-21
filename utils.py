@@ -153,7 +153,7 @@ def getKeyboardInput(drone):
     if getKey("a"): yv = speed
     elif getKey("d"): yv = -speed
 
-    if getKey("q"): drone.land()
+    if getKey("r"): drone.takeoff()
     if getKey("e"): drone.land()
 
 
