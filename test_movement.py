@@ -10,6 +10,10 @@ Keyboard를 이용하여 Drone을 조종.
 
 Keyboard의 KEY 값을 입력 받으면 드론이 VIDEO streaming도 하고, 동시에 움직임
 
+r : takeoff
+e : land
+f : stop
+
 ↑ : forward
 ↓ : back
 ← : left
@@ -19,6 +23,7 @@ w : up
 s : down
 a : counter-clockwise
 d : clockwise
+
 '''
 
 key_init()

@@ -155,6 +155,7 @@ def getKeyboardInput(drone):
 
     if getKey("r"): drone.takeoff()
     if getKey("e"): drone.land()
+    if getKey("f"): stop(drone)
 
 
     return [lr, fb, ud, yv]
