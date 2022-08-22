@@ -54,7 +54,7 @@ def main():
             'takeoff': 2,
             'down': 1,
             'clockwise': 1,
-            'stop_red': 2,
+            'stop_red': 1,
             'stop_b_g': 1,
             'stop_qr': 1,
         }
@@ -72,6 +72,7 @@ def main():
             drone = sender
             if event is drone.EVENT_FLIGHT_DATA:
                 # print(data)
+                print(data.height)
                 pass
 
         retry = 3
@@ -159,12 +160,29 @@ def main():
 
                 elif activity == ACTIVITY['b_g']:                                               # DETECT BLUE OR GREEN : 파란색 또는 초록색 사각형 탐지
 
-                    detect, image = identify_color(image, 'green')
+                    detect_b, frame_b = identify_color(frame, 'blue')
+                    detect_g, frame_g = identify_color(frame, 'green')
+
+                    if detect_b is True:
+                        frame = frame_b
+                        detect = detect_b
+                        detect_color ="blue"
+                    
+                    elif detect_g is True:
+                        frame = frame_g
+                        detect = detect_g
+                        detect_color ="green"
+                    
+                    else:
+                        detect = False
+
 
                     if SWITCH['clockwise'] is True:
                         drone.clockwise(VELOCITY['clockwise'])
                         ''' time.sleep(SLEEP['clockwise']) '''
                         sec = cnt_frame / PER_FRAME
+
+                        #여기 수정했어 DETECT되면 밑에 코드로 넘어가야할 것 같아서
                         if sec < SLEEP['clockwise']:
                             cnt_frame += 1
                             # STREAMING
@@ -189,7 +207,7 @@ def main():
                             #     continue
                             
                             cnt_frame = 0
-                            cv2.imwrite(PATH['result'] + 'green_marker.jpg', image)
+                            cv2.imwrite(PATH['result'] + etect_color+'_marker.jpg', image)
 
                         elif view_frame == VIEW_FRAME:
                             activity = ACTIVITY['qr']

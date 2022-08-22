@@ -76,7 +76,20 @@ def start_test(BTN):
 
                     # 실행 내역이 true이면 프레임 출력
                     if ret:
-                        detect, frame = identify_color(frame, 'blue')
+                        detect_b, frame_b = identify_color(frame, 'blue')
+                        detect_g, frame_g = identify_color(frame, 'green')
+
+                        if detect_b is True:
+                            frame = frame_b
+                            detect = detect_b
+                        
+                        elif detect_g is True:
+                            frame = frame_g
+                            detect = detect_g
+                        
+                        else:
+                            detect = False
+
                         cv2.imshow('COLOR DETECTION', frame)
 
 
@@ -120,7 +133,22 @@ def start_test(BTN):
                                     cv2.imwrite(PATH['result'] + 'red_marker.jpg', frame)
                         
                         elif startCount == 1:
-                            detect, frame = identify_color(frame, 'green')
+                                
+                            detect_b, frame_b = identify_color(frame, 'blue')
+                            detect_g, frame_g = identify_color(frame, 'green')
+
+                            if detect_b is True:
+                                frame = frame_b
+                                detect = detect_b
+                                detect_color ="blue"
+                            
+                            elif detect_g is True:
+                                frame = frame_g
+                                detect = detect_g
+                                detect_color ="green"
+                            
+                            else:
+                                detect = False
 
                             if detect:
                                 view_frame += 1
@@ -129,7 +157,7 @@ def start_test(BTN):
                                     view_frame = 0
 
                                 elif view_frame == FRAME // 2:
-                                    cv2.imwrite(PATH['result'] + 'blue_marker.jpg', frame)
+                                    cv2.imwrite(PATH['result'] + detect_color+'_marker.jpg', frame)
                         
                         elif startCount == 2:
                             detect, frame = read_QR(frame)
