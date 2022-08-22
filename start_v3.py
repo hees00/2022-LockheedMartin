@@ -123,7 +123,7 @@ def main():
                     continue
                 
                 print(al)
-                cal_height = 60 - (total_down * 20)+ (total_up * 20) 
+                cal_height = 60 - (total_down * 20) + (total_up * 20) 
                 start_time = time.time()
                 image = cv2.cvtColor(numpy.array(frame.to_image()), cv2.COLOR_RGB2BGR)
                 
@@ -139,7 +139,7 @@ def main():
                             first_down = False
                         else: 
                             drone.down(VELOCITY['down_s'])
-                            total_down+=1
+                            total_down += 1
                         ''' time.sleep(SLEEP['down']) '''
                         sec = cnt_frame / PER_FRAME
                         if sec < SLEEP['down']:
@@ -149,8 +149,9 @@ def main():
                             continue
 
                         cnt_frame = 0
+
                     if detect is True:
-                        view_frame =  view_frame + 1
+                        view_frame += 1
                         SWITCH['down'] = False
 
                         if view_frame == CAPTURE_FRAME:
@@ -203,7 +204,7 @@ def main():
 
                         elif cnt_turn > 6 and cnt_down == 2 and cnt_up < 4 :
                             stop(drone)
-                            drone.up(1*VELOCITY['no_detect'])
+                            drone.up(1 * VELOCITY['no_detect'])
                             cnt_turn = 0
                             cnt_up += 1
                             total_up += 1
@@ -249,7 +250,7 @@ def main():
                             #     continue
                             
                             cnt_frame = 0
-                            cv2.imwrite(PATH['result'] + etect_color+'_marker.jpg', image)
+                            cv2.imwrite(PATH['result'] + detect_color +'_marker.jpg', image)
 
                         elif view_frame == VIEW_FRAME:
                             activity = ACTIVITY['qr']
@@ -266,7 +267,7 @@ def main():
                         if cnt_turn > 6 and (cnt_down < 3 ):
                             stop(drone)
                             drone.down(VELOCITY['no_detect'])
-                            cnt_down+=1
+                            cnt_down += 1
                             total_down += 1
                             cnt_turn =0
 
@@ -330,7 +331,6 @@ def main():
                 # FORCE QUIT ( END PROGRAM )
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                     drone.land()
-                    break
 
                 if frame.time_base < 1.0/60:
                     time_base = 1.0/60

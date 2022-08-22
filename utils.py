@@ -119,4 +119,15 @@ def identify_color(frame, color):
 
     return detect, frame
 
+def identify_b_g(frame):
+    detect_blue, frame_blue = identify_color(frame, 'blue')
+    detect_green, frame_green = identify_color(frame, 'green')
 
+    if (detect_blue and detect_green) is False:
+        return detect_blue, frame_blue
+
+    elif detect_blue is True:
+        return detect_blue, frame_blue
+
+    elif detect_green is True:
+        return detect_green, frame_green

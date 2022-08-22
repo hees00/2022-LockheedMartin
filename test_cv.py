@@ -76,19 +76,7 @@ def start_test(BTN):
 
                     # 실행 내역이 true이면 프레임 출력
                     if ret:
-                        detect_b, frame_b = identify_color(frame, 'blue')
-                        detect_g, frame_g = identify_color(frame, 'green')
-
-                        if detect_b is True:
-                            frame = frame_b
-                            detect = detect_b
-                        
-                        elif detect_g is True:
-                            frame = frame_g
-                            detect = detect_g
-                        
-                        else:
-                            detect = False
+                        detect, frame = identify_b_g(frame)
 
                         cv2.imshow('COLOR DETECTION', frame)
 

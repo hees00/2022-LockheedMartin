@@ -1,9 +1,10 @@
+from pydoc import visiblename
 import tellopy
 import av
 import cv2
 import numpy
 import time
-from utils import identify_color, read_QR, stop
+from utils import identify_b_g, identify_color, read_QR, stop
 
 
 '''
@@ -22,11 +23,11 @@ def main():
         width = 700
         height = 700
 
+        RED_VIEW_PRAME = 90
         VIEW_FRAME = 60
         CAPTURE_FRAME = VIEW_FRAME - 20
         SKIP_FRAME = 300
         PER_FRAME = 33
-        CLOCKWISE = 6
 
         PATH = {
         'images': './images/',
@@ -54,7 +55,7 @@ def main():
             'takeoff': 2,
             'down': 1,
             'clockwise': 1,
-            'stop_red': 1,
+            'stop_red': 2,
             'stop_b_g': 1,
             'stop_qr': 1,
         }
@@ -65,6 +66,7 @@ def main():
             'clockwise': 60,
         }
 
+        CLOCKWISE = 360 // VELOCITY['clockwise']
 
         ###########################################################
 
@@ -72,7 +74,6 @@ def main():
             drone = sender
             if event is drone.EVENT_FLIGHT_DATA:
                 # print(data)
-                print(data.height)
                 pass
 
         retry = 3
@@ -135,11 +136,12 @@ def main():
                             continue
 
                         cnt_frame = 0
+
                     if detect is True:
                         view_frame =  view_frame + 1
                         SWITCH['down'] = False
 
-                        if view_frame == CAPTURE_FRAME:
+                        if view_frame == RED_VIEW_PRAME - 20:
                             stop(drone)
                             ''' time.sleep(SLEEP['stop_red']) '''
                             # sec = cnt_frame / PER_FRAME
@@ -151,38 +153,24 @@ def main():
                             #     cv2.imshow('TEAM : Arming', image)
                             #     continue
 
-                            cnt_frame = 0
+                            # cnt_frame = 0
                             cv2.imwrite(PATH['result'] + 'red_marker.jpg', image)
 
-                        elif view_frame == VIEW_FRAME:
+                        elif view_frame == RED_VIEW_PRAME:
                             activity = ACTIVITY['b_g']
                             view_frame = 0
 
                 elif activity == ACTIVITY['b_g']:                                               # DETECT BLUE OR GREEN : 파란색 또는 초록색 사각형 탐지
 
-                    detect_b, frame_b = identify_color(frame, 'blue')
-                    detect_g, frame_g = identify_color(frame, 'green')
-
-                    if detect_b is True:
-                        frame = frame_b
-                        detect = detect_b
-                        detect_color ="blue"
-                    
-                    elif detect_g is True:
-                        frame = frame_g
-                        detect = detect_g
-                        detect_color ="green"
-                    
-                    else:
-                        detect = False
-
+                    # Blue or Green 동시 식별 가능 함수
+                    detect, image = identify_b_g(image)
 
                     if SWITCH['clockwise'] is True:
                         drone.clockwise(VELOCITY['clockwise'])
+                        cnt_clockwise += 1
+
                         ''' time.sleep(SLEEP['clockwise']) '''
                         sec = cnt_frame / PER_FRAME
-
-                        #여기 수정했어 DETECT되면 밑에 코드로 넘어가야할 것 같아서
                         if sec < SLEEP['clockwise']:
                             cnt_frame += 1
                             # STREAMING
@@ -190,6 +178,17 @@ def main():
                             continue
 
                         cnt_frame = 0
+                        
+                        # 한바퀴 돌았으면, Down
+                        if cnt_clockwise == CLOCKWISE:
+                            drone.down(VELOCITY['down_s'])
+                            sec = cnt_frame / PER_FRAME
+                            cnt_clockwise = 0
+                            # 내려가는 동안, clockwise 되버릴 수 있음.
+                            # 하지만 continue는 사용하면 안됨. -> 정상 진행 X
+                            # 만약, 이 부분에서 오류가 나면 어쩔 수 없이 Sleep해줘야 할듯.
+                            # time.sleep(1)
+                            
 
                     if detect is True:
                         view_frame += 1
@@ -199,15 +198,15 @@ def main():
                             stop(drone)
 
                             ''' time.sleep(SLEEP['stop_b_g']) '''
-                            sec = cnt_frame / PER_FRAME
+                            # sec = cnt_frame / PER_FRAME
                             # if sec < SLEEP['stop_b_g']:
                             #     cnt_frame += 1
                             #     # STREAMING
                             #     cv2.imshow('TEAM : Arming', image)
                             #     continue
                             
-                            cnt_frame = 0
-                            cv2.imwrite(PATH['result'] + etect_color+'_marker.jpg', image)
+                            # cnt_frame = 0
+                            cv2.imwrite(PATH['result'] + 'green_marker.jpg', image)
 
                         elif view_frame == VIEW_FRAME:
                             activity = ACTIVITY['qr']
@@ -219,6 +218,7 @@ def main():
 
                     if SWITCH['qr_clockwise'] is True:
                         drone.clockwise(VELOCITY['clockwise'])
+                        cnt_clockwise += 1
 
                         ''' time.sleep(SLEEP['clockwise'])'''
                         sec = cnt_frame / PER_FRAME
@@ -230,6 +230,15 @@ def main():
 
                         cnt_frame = 0
 
+                        if cnt_clockwise == CLOCKWISE:
+                            drone.down(VELOCITY['down_s'])
+                            sec = cnt_frame / PER_FRAME
+                            cnt_clockwise = 0
+                            # 내려가는 동안, clockwise 되버릴 수 있음.
+                            # 하지만 continue는 사용하면 안됨. -> 정상 진행 X
+                            # 만약, 이 부분에서 오류가 나면 어쩔 수 없이 Sleep해줘야 할듯.
+                            # time.sleep(1)
+
                     if detect is True:
                         view_frame += 1
                         SWITCH['qr_clockwise'] = False
@@ -238,14 +247,14 @@ def main():
                             stop(drone)
 
                             ''' time.sleep(SLEEP['stop_qr']) '''
-                            sec = cnt_frame / PER_FRAME
+                            # sec = cnt_frame / PER_FRAME
                             # if sec < SLEEP['stop_qr']:
                             #     # STREAMING
                             #     cv2.imshow('TEAM : Arming', image)
                             #     cnt_frame += 1
                             #     continue
 
-                            cnt_frame = 0
+                            # cnt_frame = 0
                             cv2.imwrite(PATH['result'] + 'qr_code.jpg', image)
 
                         elif view_frame == VIEW_FRAME:
@@ -254,7 +263,6 @@ def main():
 
                 elif activity == ACTIVITY['land']:                                              # LAND : 착륙
                     drone.land()
-                    break
 
                 # STREAMING
                 cv2.imshow('TEAM : Arming', image)
@@ -263,7 +271,6 @@ def main():
                 # FORCE QUIT ( END PROGRAM )
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                     drone.land()
-                    break
 
                 if frame.time_base < 1.0/60:
                     time_base = 1.0/60
