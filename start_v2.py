@@ -137,20 +137,18 @@ def main():
                     if detect is True:
                         view_frame =  view_frame + 1
                         SWITCH['down'] = False
-                        print('Detect IN')
 
                         if view_frame == CAPTURE_FRAME:
                             stop(drone)
                             ''' time.sleep(SLEEP['stop_red']) '''
-                            sec = cnt_frame / PER_FRAME
-                            print(sec)
-                            print(cnt_frame)
-                            if sec < SLEEP['stop_red']:
-                                print(activity)
-                                cnt_frame += 1
-                                # STREAMING
-                                cv2.imshow('TEAM : Arming', image)
-                                continue
+                            # sec = cnt_frame / PER_FRAME
+
+                            # if sec < SLEEP['stop_red']:
+                            #     print(activity)
+                            #     cnt_frame += 1
+                            #     # STREAMING
+                            #     cv2.imshow('TEAM : Arming', image)
+                            #     continue
 
                             cnt_frame = 0
                             cv2.imwrite(PATH['result'] + 'red_marker.jpg', image)
@@ -184,11 +182,11 @@ def main():
 
                             ''' time.sleep(SLEEP['stop_b_g']) '''
                             sec = cnt_frame / PER_FRAME
-                            if sec < SLEEP['stop_b_g']:
-                                cnt_frame += 1
-                                # STREAMING
-                                cv2.imshow('TEAM : Arming', image)
-                                continue
+                            # if sec < SLEEP['stop_b_g']:
+                            #     cnt_frame += 1
+                            #     # STREAMING
+                            #     cv2.imshow('TEAM : Arming', image)
+                            #     continue
                             
                             cnt_frame = 0
                             cv2.imwrite(PATH['result'] + 'green_marker.jpg', image)
@@ -223,11 +221,11 @@ def main():
 
                             ''' time.sleep(SLEEP['stop_qr']) '''
                             sec = cnt_frame / PER_FRAME
-                            if sec < SLEEP['stop_qr']:
-                                # STREAMING
-                                cv2.imshow('TEAM : Arming', image)
-                                cnt_frame += 1
-                                continue
+                            # if sec < SLEEP['stop_qr']:
+                            #     # STREAMING
+                            #     cv2.imshow('TEAM : Arming', image)
+                            #     cnt_frame += 1
+                            #     continue
 
                             cnt_frame = 0
                             cv2.imwrite(PATH['result'] + 'qr_code.jpg', image)
