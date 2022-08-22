@@ -47,6 +47,7 @@ def main():
         'down': True,
         'up': True,
         'clockwise': True,
+        'qr_clockwise': True
         }
 
         SLEEP = {
@@ -99,20 +100,6 @@ def main():
                 print(ave)
                 print('retry...')
 
-        # if activity == ACTIVITY['takeoff']:                                             # TAKE OFF : 이륙
-        #             print('Take off IN')
-        #             if SWITCH['takeoff'] is True:
-        #                 drone.takeoff()
-        #                 ''' time.sleep(SLEEP['takeoff']) '''
-        #                 sec = cnt_frame / PER_FRAME
-        #                 if sec < SLEEP['takeoff']:
-        #                     cnt_frame += 1
-        #                     # STREAMING
-        #                     cv2.imshow('TEAM : Arming', image)
-        #                 else:
-        #                     SWITCH['takeoff'] = False
-        #                     activity = ACTIVITY['red']
-
         drone.takeoff()
         time.sleep(3)
         activity = ACTIVITY['red']
@@ -147,7 +134,6 @@ def main():
                             continue
 
                         cnt_frame = 0
-                    print('Detect OUT')
                     if detect is True:
                         view_frame =  view_frame + 1
                         SWITCH['down'] = False
@@ -165,9 +151,6 @@ def main():
                                 # STREAMING
                                 cv2.imshow('TEAM : Arming', image)
                                 continue
-                            
-                            cnt_frame = 0
-                            cv2.imwrite(PATH['result'] + 'green_marker.jpg', image)
 
                             cnt_frame = 0
                             cv2.imwrite(PATH['result'] + 'red_marker.jpg', image)
@@ -212,14 +195,13 @@ def main():
 
                         elif view_frame == VIEW_FRAME:
                             activity = ACTIVITY['qr']
-                            SWITCH['clockwise'] = True
                             view_frame = 0
 
                 elif activity == ACTIVITY['qr']:                                                # DETECT QR CODE : QR 코드 탐지
 
                     detect, image = read_QR(image)
 
-                    if SWITCH['clockwise'] is True:
+                    if SWITCH['qr_clockwise'] is True:
                         drone.clockwise(VELOCITY['clockwise'])
 
                         ''' time.sleep(SLEEP['clockwise'])'''
@@ -234,7 +216,7 @@ def main():
 
                     if detect is True:
                         view_frame += 1
-                        SWITCH['clockwise'] = False
+                        SWITCH['qr_clockwise'] = False
 
                         if view_frame == CAPTURE_FRAME:
                             stop(drone)
