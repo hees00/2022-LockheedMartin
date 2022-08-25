@@ -12,5 +12,5 @@ pyzbar
 pygame
 
 # Tello ---------------------------------
-tellopy
+djitellopy
 av==8.0.3

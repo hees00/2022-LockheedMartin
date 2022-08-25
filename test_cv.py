@@ -79,7 +79,7 @@ def start_test(BTN):
                         detect, frame = identify_b_g(frame)
 
                         cv2.imshow('COLOR DETECTION', frame)
-
+                        cv2.waitKey(1) & 0xFF == ord('q')
 
                         if cv2.waitKey(1) & 0xFF == ord('q'):
                             break

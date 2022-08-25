@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+import math
 from pyzbar.pyzbar import decode
 from scipy.spatial import distance as dist
 
@@ -10,6 +11,12 @@ COLOR = {
   'red': [[0, 0, 50], [50, 50, 255]],
   'blue': [[50, 0, 0], [255, 50, 50]],
   'green': [[0, 50, 0], [50, 255, 50]],
+}
+
+SHAPE = {
+    'triangle': False,
+    'rectangle': False,
+    'circle': False,
 }
 ############################################
 
@@ -68,14 +75,14 @@ Draw rectangle and text
 
 '''
 
-def Label(frame, points, label):
+def setLabel(frame, points, label):
     # 입력받은 사각형의 정보 추출
     (x, y, w, h) = cv2.boundingRect(points)
     point1 = (x, y)
     point2 = (x + w, y + h)
 
     # Bounding Box 그리기
-    cv2.rectangle(frame, point1, point2, (255, 0, 0), 2)
+    cv2.rectangle(frame, point1, point2, (0, 255, 0), 2)
 
     # 중심 찾기
     centroid_1= int((x + x + w) / 2)
@@ -97,7 +104,14 @@ return    Bounding box + color가 추가된 image
 
 '''
 
-def identify_color(frame, color):
+def identify_shapes(frame, color, shapes = 'rectangle'):
+
+    if type(shapes) is tuple:
+        for shape in shapes:
+            SHAPE[shape] = True
+    elif type(shapes) is str:
+        SHAPE[shapes] = True
+
     detect = False
     color = color.lower()
     lower_color = np.array(COLOR[color][0])
@@ -112,16 +126,30 @@ def identify_color(frame, color):
             continue
         approx = cv2.approxPolyDP(pts, cv2.arcLength(pts, True) * 0.02, True)
         vtc = len(approx)
-        if vtc == 4:
+        if SHAPE['triangle'] and vtc == 3:
             print(f"DETECT COLOR\t:    {color.upper()}")
-            Label(frame, pts, f'{color.upper()} Marker')
+            setLabel(frame, pts, f'{color.upper()} Marker')
             detect = True
+
+        elif SHAPE['rectangle'] and vtc == 4:
+            print(f"DETECT COLOR\t:    {color.upper()}")
+            setLabel(frame, pts, f'{color.upper()} Marker')
+            detect = True
+        
+        elif SHAPE['circle'] and vtc > 4:
+            area = cv2.contourArea(pts)
+            _, radius = cv2.minEnclosingCircle(pts)
+
+            ratio = radius * radius * math.pi / area
+
+            if int(ratio) == 1:
+                setLabel(frame, pts, f'{color.upper()} Marker')
 
     return detect, frame
 
 def identify_b_g(frame):
-    detect_blue, frame_blue = identify_color(frame, 'blue')
-    detect_green, frame_green = identify_color(frame, 'green')
+    detect_blue, frame_blue = identify_shapes(frame, 'blue')
+    detect_green, frame_green = identify_shapes(frame, 'green')
 
     if (detect_blue and detect_green) is False:
         return detect_blue, frame_blue
