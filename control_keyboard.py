@@ -70,6 +70,7 @@ def main():
             # CAPTURE
             if getKey('z'):
                 cv2.imwrite(f'Resources/Images/{time.time()}.jpg', img)
+                time.sleep(0.2)
 
 
 
@@ -97,6 +98,7 @@ def main():
             cv2.imshow("Image", img)
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 drone.land()
-                
+                break
+
 if __name__ == "__main__":
     main()

@@ -113,8 +113,24 @@ class ArmingDrone(tello.Tello):
         except Exception as e:
             print(e)
 
-    def start_mission():
-        pass
+    ''' Start Mission 01 ~ 05 '''
+    def start_mission(self, mission_number):
+        if mission_number == 1:
+            self.move_up(30)
+            self.move_down(30)
+
+        elif mission_number == 2:
+            self.flip_forward()
+
+        elif mission_number == 3:
+            self.move_down(30)
+            self.move_up(30)
+
+        elif mission_number == 4:
+            self.flip_left()
+
+        elif mission_number == 5:
+            self.rotate_clockwise(360)
     
     ''' Draw rectangle and text '''
     def __setLabel(self, frame, points, label):

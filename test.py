@@ -20,7 +20,7 @@ TEST = {
 ######################## FUNCTION #########################
 def detect_shape_by_color():
     select = int(input('Select Test (Image = 1 / Video = 2) : '))
-    color = input('Enter a color to identify (red / blue / green) : ')
+    color = input('Enter a color to identify (red / green / blue) : ')
     shape = input('Enter a shape to identify (triangle / rectangle / circle) : ')
     
 
