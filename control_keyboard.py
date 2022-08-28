@@ -8,9 +8,9 @@ Keyboard를 이용하여 Drone을 조종.
 
 Keyboard의 KEY 값을 입력 받으면 드론이 VIDEO streaming도 하고, 동시에 움직임
 
-r : takeoff
+t : takeoff
 e : land
-f : stop
+x : stop
 
 ↑ : forward
 ↓ : back
@@ -21,6 +21,13 @@ w : up
 s : down
 a : counter-clockwise
 d : clockwise
+
+f : flip-forward
+b : flip-back
+l : flip-left
+r : flip-right
+
+z : capture
 
 '''
 
@@ -47,9 +54,9 @@ def main():
             speed = 50
             
             # TAKEOFF / LAND / STOP
-            if getKey("r"): drone.takeoff()
+            if getKey("t"): drone.takeoff()
             if getKey("e"): drone.land()
-            if getKey("f"): drone.stop()
+            if getKey("x"): drone.stop()
 
             # LEFT OR RIGHT
             if getKey("LEFT"): lr = -speed
@@ -69,11 +76,21 @@ def main():
 
             # CAPTURE
             if getKey('z'):
-                cv2.imwrite(f'Resources/Images/{time.time()}.jpg', img)
+                cv2.imwrite(f'Resources/Images/capture/{time.time()}.jpg', img)
                 time.sleep(0.2)
 
-
-
+            # FLIP FORWARD
+            if getKey('f'):
+                drone.flip_forward()
+            # FLIP BACK
+            elif getKey('b'):
+                drone.flip_back()
+            # FLIP LEFT
+            elif getKey('l'):
+                drone.flip_left()
+            # FLIP RIGHT
+            elif getKey('r'):
+                drone.flip_right()
 
             return [lr, fb, ud, yv]
 
@@ -95,7 +112,7 @@ def main():
             img = drone.get_frame_read().frame
             img = cv2.resize(img, (600, 600))
 
-            cv2.imshow("Image", img)
+            cv2.imshow("STREAMING", img)
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 drone.land()
                 break

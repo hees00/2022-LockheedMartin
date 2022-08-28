@@ -54,7 +54,7 @@ cnt_frame = 0
 
 ##################### START TELLO ########################
 
- # CONNECT TO TELLO
+# CONNECT TO TELLO
 drone = ArmingDrone()
 drone.connect()
 print(drone.get_battery())
@@ -110,8 +110,8 @@ while True:
             else:
                 cnt_frame = 0
                 SWITCH['search_up'] = False
-
-        pass
+        
+        cv2.imshow("TEAM : ARMING", frame)
 
     ###################### DETECT R #######################
     elif activity is ACTIVITY['detect_red']:

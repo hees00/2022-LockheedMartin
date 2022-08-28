@@ -74,20 +74,28 @@ Draw rectangle and text
 @params   coolr: 식별할 color name
 
 '''
+def getRectInfo(points):
+        # 입력받은 사각형의 정보 추출
+        (x, y, w, h) = cv2.boundingRect(points)
+        point1 = (x, y)
+        point2 = (x + w, y + h)
 
-def setLabel(frame, points, label):
-    # 입력받은 사각형의 정보 추출
-    (x, y, w, h) = cv2.boundingRect(points)
-    point1 = (x, y)
-    point2 = (x + w, y + h)
+        # 중심 찾기
+        centroid_1= int((x + x + w) / 2)
+        centroid_2 = int((y + y + h) / 2)
+        centroid = (centroid_1, centroid_2)
+
+        # 넓이 구하기
+        area = w * h
+
+        return (point1, point2, centroid, area)
+
+def setLabel(frame,info, label):
+
+    (point1, point2, centroid, area) = info
 
     # Bounding Box 그리기
     cv2.rectangle(frame, point1, point2, (0, 255, 0), 2)
-
-    # 중심 찾기
-    centroid_1= int((x + x + w) / 2)
-    centroid_2 = int((y + y + h) / 2)
-    centroid = (centroid_1, centroid_2)
 
     # 중심 원 그리기
     cv2.circle(frame, centroid, 5, (255,255,255), 2)
@@ -105,6 +113,8 @@ return    Bounding box + color가 추가된 image
 '''
 
 def identify_shapes(frame, color, shapes = 'rectangle'):
+    detect = False
+    info = (0, 0, (0, 0), 0)
 
     if type(shapes) is tuple:
         for shape in shapes:
@@ -112,7 +122,6 @@ def identify_shapes(frame, color, shapes = 'rectangle'):
     elif type(shapes) is str:
         SHAPE[shapes] = True
 
-    detect = False
     color = color.lower()
     lower_color = np.array(COLOR[color][0])
     upper_color = np.array(COLOR[color][1])
@@ -128,24 +137,27 @@ def identify_shapes(frame, color, shapes = 'rectangle'):
         vtc = len(approx)
         if SHAPE['triangle'] and vtc == 3:
             print(f"DETECT COLOR\t:    {color.upper()}")
-            setLabel(frame, pts, f'{color.upper()} Marker')
+            info = getRectInfo(pts)
+            setLabel(frame, info, f'{color.upper()} Marker')
             detect = True
 
         elif SHAPE['rectangle'] and vtc == 4:
             print(f"DETECT COLOR\t:    {color.upper()}")
-            setLabel(frame, pts, f'{color.upper()} Marker')
+            info = getRectInfo(pts)
+            setLabel(frame, info, f'{color.upper()} Marker')
             detect = True
         
         elif SHAPE['circle'] and vtc > 4:
+            info = getRectInfo(pts)
             area = cv2.contourArea(pts)
             _, radius = cv2.minEnclosingCircle(pts)
 
             ratio = radius * radius * math.pi / area
 
             if int(ratio) == 1:
-                setLabel(frame, pts, f'{color.upper()} Marker')
+                setLabel(frame, info, f'{color.upper()} Marker')
 
-    return detect, frame
+    return detect, frame, info
 
 def identify_b_g(frame):
     detect_blue, frame_blue = identify_shapes(frame, 'blue')
@@ -159,3 +171,4 @@ def identify_b_g(frame):
 
     elif detect_green is True:
         return detect_green, frame_green
+

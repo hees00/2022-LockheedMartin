@@ -14,21 +14,24 @@ class ArmingDrone(tello.Tello):
     # Values of HSV Color
     COLOR = {
       'all': [[0, 0, 0], [255, 255, 255]],
-      'red': [[0, 0, 50], [50, 50, 255]],
-      'blue': [[50, 0, 0], [255, 50, 50]],
-      'green': [[0, 50, 0], [50, 255, 50]],
+      'red': [[161, 155, 84], [179, 255, 255]],
+      'blue': [[94, 80, 2], [126, 255, 255]],
+      'green': [[25, 52, 72], [102, 255, 255]],
     }
 
     # Detecting of Shapes
     SHAPE = {
-    'triangle': False,
-    'rectangle': False,
-    'circle': False,
+        'triangle': False,
+        'rectangle': False,
+        'circle': False,
     }
 
+    MOVE = {
+        'shape': [10000, 10500],
+    }
 
-    def __init__(self):
-        super.__init__()
+    PID = [0.4, 0.4, 0]
+
 
     ''' Drone stop ( Hovering ) '''
     def stop():
@@ -37,55 +40,101 @@ class ArmingDrone(tello.Tello):
     ''' Detect Shapes by color '''
     def identify_shapes(self, frame, shapes = 'all', color = 'all'):
         detect = False
-
-        self.__initShapes()
+        info = ((0, 0), (0, 0), (0, 0), 0)
+        tri, rec, cir = False, False, False
         if shapes == 'all':
-          for shape in SHAPE:
-              self.SHAPE[shape] = True
-        elif type(shapes) is tuple:
-          for shape in shapes:
-              self.SHAPE[shape] = True
-        elif type(shapes) is str:
-            self.SHAPE[shapes] = True
+            tri, rec, cir = True, True, True
+        elif shapes == 'triangle':
+            tri = True
+        elif shapes == 'rectangle':
+            rec = True
+        elif shapes == 'circle':
+            cir = True
 
         color = color.lower()
-        lower_color = np.array(self.COLOR[color][0])
-        upper_color = np.array(self.COLOR[color][1])
+        hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+        lower_color = np.array(self.COLOR[color][0], dtype = np.uint8)
+        upper_color = np.array(self.COLOR[color][1], dtype = np.uint8)
 
-        mask = cv2.inRange(frame, lower_color, upper_color)
-        mask = cv2.erode(mask, None)
+        mask = cv2.inRange(hsv, lower_color, upper_color)
+        res = cv2.bitwise_and(frame, frame, mask = mask)
+        (h, s, v) = cv2.split(res)
+        
+        blur = cv2.medianBlur(s, 5)
+        el = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (15, 15))
+        tmp = cv2.erode(blur, el, iterations = 1)
 
-        contours,_ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+        (_, mask) = cv2.threshold(tmp, 0, 255, cv2.THRESH_BINARY)
+
+        cv2. imshow('mask', mask)
+        contours,_ = cv2.findContours(mask, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
         for pts in contours:
-            if cv2.contourArea(pts) < 400:
+            if cv2.contourArea(pts) < 100:
                 continue
             approx = cv2.approxPolyDP(pts, cv2.arcLength(pts, True) * 0.02, True)
             vtc = len(approx)
 
             # Triangle ( ▲ )
-            if vtc == 3:
+            if tri and vtc == 3:
+                info = self.__getRectInfo(pts)
                 print(f"DETECT COLOR\t:    {color.upper()}")
-                self.__setLabel(frame, pts, f'{color.upper()} Marker')
+                self.__setLabel(frame, info, f'{color.upper()} Marker')
                 detect = True
 
             # Rectangle ( ■ )
-            elif vtc == 4:
+            elif rec and vtc == 4:
+                info = self.__getRectInfo(pts)
                 print(f"DETECT COLOR\t:    {color.upper()}")
-                self.__setLabel(frame, pts, f'{color.upper()} Marker')
+                self.__setLabel(frame, info, f'{color.upper()} Marker')
                 detect = True
 
             # Circle ( ● )
-            elif SHAPE['circle'] and vtc > 4:
+            elif cir and vtc == 8:
+                info = self.__getRectInfo(pts)
+                print(info)
                 area = cv2.contourArea(pts)
                 _, radius = cv2.minEnclosingCircle(pts)
 
                 ratio = radius * radius * math.pi / area
 
                 if int(ratio) == 1:
-                    self.__setLabel(frame, pts, f'{color.upper()} Marker')
+                    print(f"DETECT COLOR\t:    {color.upper()}")
+                    self.__setLabel(frame, info, f'{color.upper()} Marker')
+                    detect = True
 
-        return detect, frame
+        return detect, frame, info
     
+    ''' Drone track shapes '''
+    def track_shape(self, info, w, pError):
+        speed = 24      # 20 ~ 28
+        track = False
+
+        x, y = info[2]
+        area = info[3]
+        fb = 0
+
+        # REGULATE YAW : yaw ( Angle )
+        error = x - w // 2
+        yaw = self.PID[0] * error + self.PID[1] * (error - pError)
+        yaw = int(np.clip(yaw, -100, 100))
+
+        fb_range = self.MOVE['shape']
+        # REGULATE FORWARD OR BACKWARD : fb ( Foward / Backward )
+        if area > fb_range[0] and area < fb_range[1]:
+            fb = 0
+        elif area < fb_range[0] and area != 0:
+            fb = speed
+        elif area > fb_range[1]:
+            fb = 0
+            track = True
+
+        if x == 0:
+            yaw = 0
+            error = 0
+
+        self.send_rc_control(0, fb, 0, yaw)
+        return error, track
+
     ''' Detect QR CODE '''
     def read_qr(self, frame):
         detect = False
@@ -134,23 +183,33 @@ class ArmingDrone(tello.Tello):
         elif mission_number == 5:
             self.rotate_clockwise(360)
     
-    ''' Draw rectangle and text '''
-    def __setLabel(self, frame, points, label):
+    ''' Get info of rectangle  '''
+    def __getRectInfo(self, points):
         # 입력받은 사각형의 정보 추출
         (x, y, w, h) = cv2.boundingRect(points)
         point1 = (x, y)
         point2 = (x + w, y + h)
-
-        # Bounding Box 그리기
-        cv2.rectangle(frame, point1, point2, (0, 255, 0), 2)
 
         # 중심 찾기
         centroid_1= int((x + x + w) / 2)
         centroid_2 = int((y + y + h) / 2)
         centroid = (centroid_1, centroid_2)
 
+        # 넓이 구하기
+        area = w * h
+
+        return (point1, point2, centroid, area)
+    
+    ''' Draw rectangle and text '''
+    def __setLabel(self, frame, info, label):
+
+        (point1, point2, centroid, area) = info
+        
+        # Bounding Box 그리기
+        cv2.rectangle(frame, point1, point2, (0, 255, 0), 2)
+
         # 중심 원 그리기
-        cv2.circle(frame, centroid, 5, (255,255,255), 2)
+        cv2.circle(frame, centroid, 5, (255,255,255), cv2.FILLED)
         # Labeling
         cv2.putText(frame, label, point1, self.FONT, 1, (0, 0, 255))
 
