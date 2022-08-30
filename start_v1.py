@@ -2,6 +2,12 @@ from ArmingDrone import ArmingDrone
 import cv2
 import time
 
+'''
+1. Takeoff 할 때, QR을 인식했는가 ?
+2. 그래서 5초간 멈췄는가 ?
+3. 
+'''
+
 ##################### CONFIGURATION #########################
 WIDTH = 700
 HEIGHT = 700
@@ -27,6 +33,7 @@ ACTIVITY = {
 SWITCH = {
     'takeoff': True,
     'down': True,
+    'stop': True,
     'search_up': True,
     'detect_qr': False,
     'clockwise': True,
@@ -75,38 +82,35 @@ drone.streamon()
 skip_start = time.time()
 skip_end = 0
 
+drone.takeoff()
+
 while True:
     frame = drone.get_frame_read().frame
     frame = cv2.resize(frame, (WIDTH, HEIGHT))
 
-    # SKIP FRAME
-    if END['skip'] < SKIP_SEC:
-        END['skip'] = time.time()
-        cv2.imshow("TEAM : ARMING", frame)
-        continue
+    # # SKIP FRAME
+    # if END['skip'] < SKIP_SEC:
+    #     END['skip'] = time.time()
+    #     cv2.imshow("TEAM : ARMING", frame)
+    #     continue
     
-    elif skip_end - skip_start > SKIP_SEC and SWITCH['takeoff'] is True:
-        # DRONE TAKEOFF
-        drone.takeoff()
-        SWITCH['takeoff'] = False
+    # elif END['skip'] > SKIP_SEC and SWITCH['takeoff'] is True:
+    #     # DRONE TAKEOFF
+    #     drone.takeoff()
+    #     SWITCH['takeoff'] = False
+    #     continue
     
 
     ###################### HOVERING #######################
     if activity is ACTIVITY['hovering']:
-        detect, frame, messages = drone.read_qr(frame)
+        detect_qr, frame, message = drone.read_qr(frame)
 
-        if detect is True:
+        if detect_qr is True:
             view_frame += 1
 
-            if view_frame >= VIEW_FRAME:
-                drone.stop()
-
-                # HOVERING 5 sec
-                if END['hovering'] < SLEEP['hovering']:
-                    END['hovering'] = time.time()
-                    cv2.imshow("TEAM : ARMING", frame)
-                    continue
-                
+            if view_frame == VIEW_FRAME:
+                time.sleep(5)
+                print('ㅃㅃㅃㅃㅃㅃ')
                 view_frame = 0
                 activity = ACTIVITY['detect_green']
 
@@ -119,8 +123,8 @@ while True:
 
         # SEARCHING
         if SWITCH['search_up'] is True:
-            drone.move_up(30)
             SWITCH['search_up'] = False
+            drone.move_up(30)
         
         elif SWITCH['search_up'] is False:
             # TRACKING GREEN MARKER
@@ -133,10 +137,10 @@ while True:
 
                 if detect_qr is False:
                     # DOWN
-                    drone.send_rc_control(0, 0, -30, 0)
+                    drone.send_rc_control(0, 0, -20, 0)
                 
                 elif detect_qr is True:
-                    drone.stop()
+                    time.sleep(0.2)
                     mission = eval(message)
 
             # START MISSION

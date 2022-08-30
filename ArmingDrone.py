@@ -34,14 +34,15 @@ class ArmingDrone(tello.Tello):
 
 
     ''' Drone stop ( Hovering ) '''
-    def stop():
-        super.send_rc_control(0, 0, 0, 0)
-
+    # def stop():
+    #     super.send_rc_control(0, 0, 0, 0)
+        
     ''' Detect Shapes by color '''
     def identify_shapes(self, frame, shapes = 'all', color = 'all'):
         detect = False
         info = ((0, 0), (0, 0), (0, 0), 0)
         tri, rec, cir = False, False, False
+
         if shapes == 'all':
             tri, rec, cir = True, True, True
         elif shapes == 'triangle':
@@ -138,11 +139,11 @@ class ArmingDrone(tello.Tello):
     ''' Detect QR CODE '''
     def read_qr(self, frame):
         detect = False
+        message = False
 
         try:
             # 바코드 정보 decoding
             qrs = decode(frame)
-            detect = False
 
             # 바코드 정보가 여러 개 이기 때문에 하나씩 해석
             for qr in qrs:
