@@ -31,6 +31,23 @@ drone.connect()
 drone.streamon()
 
 drone.takeoff()
+start = time.time()
 
-drone.send_rc_control(0, 50, 0, 0)
-drone.land()
+while True:
+    # GET THE IMAGE FROM TELLO
+    frame = drone.get_frame_read().frame
+    frame = cv2.resize(frame, (width, height))
+    end = time.time()
+
+    if end - start > 3:
+        cv2.imshow('Move', frame)
+        switch = True
+        continue
+
+    drone.start_mission(1)
+    cv2.imshow('Move', frame)
+
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        drone.land()
+        break
+

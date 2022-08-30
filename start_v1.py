@@ -8,49 +8,60 @@ HEIGHT = 700
 
 VIEW_FRAME = 20
 CAPTURE_FRAME = VIEW_FRAME - 20
-SKIP_FRAME = 300
-PER_FRAME = 33
+SKIP_SEC = 10
 
 PATH = {
-'images': './images/',
-'videos': './videos/',
-'result': './results/real/',
+    'images': './images/',
+    'videos': './videos/',
+    'result': './results/real/',
 }
 
 ACTIVITY = {
-'hovering': 0,
-'detect_green': 1,
-'detect_red': 2,
-'detect_blue': 3,
-'land': 4,
+    'hovering': 0,
+    'detect_green': 1,
+    'detect_red': 2,
+    'detect_blue': 3,
+    'land': 4,
 }
 
 SWITCH = {
-'down': True,
-'search_up': True,
-'clockwise': True,
-'qr_clockwise': True
+    'takeoff': True,
+    'down': True,
+    'search_up': True,
+    'detect_qr': False,
+    'clockwise': True,
+    'qr_clockwise': True,
 }
 
 SLEEP = {
-  'takeoff': 2,
-  'hovering': 5,
-  'search_up': 1,
-  'stop_red': 2,
-  'stop_b_g': 1,
-  'stop_qr': 1,
+    'takeoff': 2,
+    'hovering': 5,
+    'search_up': 1,
+    'stop_red': 2,
+    'stop_b_g': 1,
+    'stop_qr': 1,
 }
 
 VELOCITY = {
-  'search_up': 20,
-  'down': 60,
-  'down_s': 20,
-  'clockwise': 60,
+    'search_up': 20,
+    'down': 60,
+    'down_s': 20,
+    'clockwise': 60,
+}
+
+END = {
+    'skip': 0,
+    'hovering': 0,
+    'search_up': 0,
 }
 
 activity = ACTIVITY['hovering']
+track = True
+pError = 0
+mission = 0
 view_frame = 0
 cnt_frame = 0
+
 
 ##################### START TELLO ########################
 
@@ -61,13 +72,24 @@ print(drone.get_battery())
 
 # START VIDEO STREAMING
 drone.streamon()
-
-# DRONE TAKEOFF
-drone.takeoff()
+skip_start = time.time()
+skip_end = 0
 
 while True:
     frame = drone.get_frame_read().frame
     frame = cv2.resize(frame, (WIDTH, HEIGHT))
+
+    # SKIP FRAME
+    if END['skip'] < SKIP_SEC:
+        END['skip'] = time.time()
+        cv2.imshow("TEAM : ARMING", frame)
+        continue
+    
+    elif skip_end - skip_start > SKIP_SEC and SWITCH['takeoff'] is True:
+        # DRONE TAKEOFF
+        drone.takeoff()
+        SWITCH['takeoff'] = False
+    
 
     ###################### HOVERING #######################
     if activity is ACTIVITY['hovering']:
@@ -80,36 +102,49 @@ while True:
                 drone.stop()
 
                 # HOVERING 5 sec
-                sec = cnt_frame / PER_FRAME
-                if sec < SLEEP['hovering']:
-                    cnt_frame += 1
-                    # STREAMING
-                    cv2.imshow('TEAM : ARMING', frame)
+                if END['hovering'] < SLEEP['hovering']:
+                    END['hovering'] = time.time()
+                    cv2.imshow("TEAM : ARMING", frame)
                     continue
-                else:
-                    view_frame = 0
-                    cnt_frame = 0
-                    activity = ACTIVITY['detect_green']
+                
+                view_frame = 0
+                activity = ACTIVITY['detect_green']
 
         cv2.imshow("TEAM : ARMING", frame)
 
     ###################### DETECT G #######################
     elif activity is ACTIVITY['detect_green']:
-        detect, frame = drone.identify_shapes(frame, 'circle', 'green')
+        detect, frame, info = drone.identify_shapes(frame, 'circle', 'green')
+        detect_qr = False
 
         # SEARCHING
         if SWITCH['search_up'] is True:
-            drone.move_up(VELOCITY['search_up'])
+            drone.move_up(30)
+            SWITCH['search_up'] = False
+        
+        elif SWITCH['search_up'] is False:
+            # TRACKING GREEN MARKER
+            if track is True:
+                pError, track = drone.track_shape(info, WIDTH, pError)
+            
+            # DETECT QR
+            elif track is False:
+                detect_qr, frame, message = drone.read_qr(frame)
 
-            sec = cnt_frame / PER_FRAME
-            if sec < SLEEP['search_up']:
-                cnt_frame += 1
-                # STREAMING
-                cv2.imshow('TEAM : ARMING', frame)
-                continue
-            else:
-                cnt_frame = 0
-                SWITCH['search_up'] = False
+                if detect_qr is False:
+                    # DOWN
+                    drone.send_rc_control(0, 0, -30, 0)
+                
+                elif detect_qr is True:
+                    drone.stop()
+                    mission = eval(message)
+
+            # START MISSION
+            if detect_qr is True and mission:
+                drone.start_mission(mission)
+                drone.rotate_clockwise(180)
+                drone.move_up(40)
+                activity = ACTIVITY['detect_red']
         
         cv2.imshow("TEAM : ARMING", frame)
 

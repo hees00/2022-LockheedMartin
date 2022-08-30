@@ -1,5 +1,6 @@
 import cv2
 import time
+from threading import Thread
 from utils import *
 from ArmingDrone import ArmingDrone
 
@@ -233,6 +234,8 @@ def basic_drone_video_streaming():
 
 def tracking_shape():
     pError = 0
+    track = True
+    mission = True
     w = 600
     h = 600
 
@@ -243,6 +246,7 @@ def tracking_shape():
 
     drone = ArmingDrone()
     drone.connect()
+    print(drone.get_battery())
 
     drone.streamon()
     drone.takeoff()
@@ -252,11 +256,20 @@ def tracking_shape():
         frame = cv2.resize(frame, (w, h))
 
         detect, frame, info = drone.identify_shapes(frame, shapes = shape, color = color)
-        pError, _ = drone.track_shape(info, w, pError)
+
+        if track is True:
+            pError, track = drone.track_shape(info, w, pError)
+        elif track is False and mission is True:
+            drone.start_mission(1)
+            drone.rotate_clockwise(180)
+            drone.move_up(30)
+            mission = False
+            print("Finish")
 
         cv2.imshow('Tracking', frame)
         if cv2.waitKey(1) & 0xFF == ord('q'):
             drone.land()
+            cv2.destroyAllWindows()
             break
 
 

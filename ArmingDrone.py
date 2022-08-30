@@ -107,7 +107,7 @@ class ArmingDrone(tello.Tello):
     ''' Drone track shapes '''
     def track_shape(self, info, w, pError):
         speed = 24      # 20 ~ 28
-        track = False
+        track = True
 
         x, y = info[2]
         area = info[3]
@@ -126,7 +126,7 @@ class ArmingDrone(tello.Tello):
             fb = speed
         elif area > fb_range[1]:
             fb = 0
-            track = True
+            track = False
 
         if x == 0:
             yaw = 0
@@ -138,7 +138,6 @@ class ArmingDrone(tello.Tello):
     ''' Detect QR CODE '''
     def read_qr(self, frame):
         detect = False
-        messages = []
 
         try:
             # 바코드 정보 decoding
@@ -151,7 +150,6 @@ class ArmingDrone(tello.Tello):
                 x, y, w, h = qr.rect
                 # 바코드 데이터 디코딩
                 message = qr.data.decode('utf-8')
-                messages.append(message)
                 # 인식한 바코드 사각형 표시
                 cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 0, 255), 5)
                 # 인식한 바코드 사각형 위에 글자 삽입
@@ -159,7 +157,7 @@ class ArmingDrone(tello.Tello):
                 detect = True
                 print(f'QR CODE\t\t:    {message}')
 
-            return detect, frame, messages
+            return detect, frame, message
 
         except Exception as e:
             print(e)
