@@ -1,20 +1,24 @@
+from termios import VEOL
 from ArmingDrone import ArmingDrone
 import cv2
 import time
 
 '''
 1. Takeoff 할 때, QR을 인식했는가 ? OK
-2. 그래서 5초간 멈췄는가 ?
-3. 
+2. 그래서 5초간 멈췄는가 ? OK
+3. Green Marker를 탐색하기 위해 UP 했는가 ? OK
+4. Green Marker를 Tracking 하는가 ? OK
+5. Green Marker 근처까지 이동하는가 ? OK
+6. QR을 Detect하기 위해, 아래로 잘 내려가는가 ? OK
+7. QR message를 읽어, 미션을 수행하는가 ? OK
 '''
 
 ##################### CONFIGURATION #########################
 WIDTH = 700
 HEIGHT = 700
 
-VIEW_FRAME = 20
-CAPTURE_FRAME = VIEW_FRAME - 20
-SKIP_SEC = 10
+VIEW_FRAME = 2
+SKIP_SEC = 5
 
 PATH = {
     'images': './images/',
@@ -41,19 +45,13 @@ SWITCH = {
 }
 
 SLEEP = {
-    'takeoff': 2,
     'hovering': 5,
     'search_up': 1,
-    'stop_red': 2,
-    'stop_b_g': 1,
-    'stop_qr': 1,
 }
 
 VELOCITY = {
     'search_up': 20,
-    'down': 60,
-    'down_s': 20,
-    'clockwise': 60,
+    'search_down': -20,
 }
 
 END = {
@@ -67,8 +65,7 @@ track = True
 pError = 0
 mission = 0
 view_frame = 0
-cnt_frame = 0
-
+skip_end = 0
 
 ##################### START TELLO ########################
 
@@ -80,7 +77,6 @@ print(drone.get_battery())
 # START VIDEO STREAMING
 drone.streamon()
 skip_start = time.time()
-skip_end = 0
 
 drone.takeoff()
 
@@ -102,13 +98,13 @@ while True:
             view_frame += 1
             print(view_frame)
             if view_frame == VIEW_FRAME:
-                time.sleep(5)
+                time.sleep(SLEEP['hovering'])
                 print('HOVERING FINISH')
                 view_frame = 0
                 activity = ACTIVITY['detect_green']
         else:
             # DOWN
-            drone.send_rc_control(0, 0, -20, 0)
+            drone.send_rc_control(0, 0, VELOCITY['search_down'], 0)
 
 
         cv2.imshow("TEAM : ARMING", frame)
@@ -121,12 +117,12 @@ while True:
         # SEARCHING
         if SWITCH['search_up'] is True:
             SWITCH['search_up'] = False
-            drone.move_up(60)
+            drone.move_up(VELOCITY['search_up'])
         
         elif SWITCH['search_up'] is False:
             # TRACKING GREEN MARKER
             if track is True:
-                pError, track = drone.track_shape(info, WIDTH, pError)
+                pError, track = drone.track_shape(info, WIDTH, pError, speed = 30)
             
             # DETECT QR
             elif track is False:
@@ -134,7 +130,7 @@ while True:
 
                 if detect_qr is False:
                     # DOWN
-                    drone.send_rc_control(0, 0, -20, 0)
+                    drone.send_rc_control(0, 0, VELOCITY['search_down'], 0)
                 
                 elif detect_qr is True:
                     time.sleep(0.2)
@@ -144,8 +140,7 @@ while True:
             if detect_qr is True and mission:
                 print(message)
                 drone.start_mission(mission)
-                drone.rotate_clockwise(180)
-                drone.move_up(40)
+                drone.move_up(VELOCITY['search_up'])
                 activity = ACTIVITY['detect_red']
         
         cv2.imshow("TEAM : ARMING", frame)

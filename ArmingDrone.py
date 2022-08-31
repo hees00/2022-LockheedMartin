@@ -106,8 +106,7 @@ class ArmingDrone(tello.Tello):
         return detect, frame, info
     
     ''' Drone track shapes '''
-    def track_shape(self, info, w, pError):
-        speed = 24      # 20 ~ 28
+    def track_shape(self, info, w, pError, speed = 20):
         track = True
 
         x, y = info[2]
