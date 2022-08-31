@@ -4,14 +4,12 @@ import numpy as np
 from djitellopy import tello
 from pyzbar.pyzbar import decode
 
-from utils import SHAPE
-
 
 class ArmingDrone(tello.Tello):
 
     FONT = cv2.FONT_HERSHEY_SIMPLEX
 
-    # Values of HSV Color
+    # Values of HSV Color [0] : Lower [1] : Upper
     COLOR = {
       'all': [[0, 0, 0], [255, 255, 255]],
       'red': [[0, 87, 100], [30, 255, 255]],
@@ -100,7 +98,7 @@ class ArmingDrone(tello.Tello):
 
                 if int(ratio) == 1:
                     print(f"DETECT COLOR\t:    {color.upper()}")
-                    self.__setLabel(frame, info, f'{color.upper()} Marker')
+                    self.__setLabel(frame, info, f'{color.upper()} Marker', shape = 'circle')
                     detect = True
 
         return detect, frame, info
@@ -199,12 +197,16 @@ class ArmingDrone(tello.Tello):
         return (point1, point2, centroid, area)
     
     ''' Draw rectangle and text '''
-    def __setLabel(self, frame, info, label):
+    def __setLabel(self, frame, info, label, shape = 'rectangle'):
 
         (point1, point2, centroid, area) = info
         
-        # Bounding Box 그리기
-        cv2.rectangle(frame, point1, point2, (0, 255, 0), 2)
+        if shape == 'rectangle':
+            # Bounding Box 그리기
+            cv2.rectangle(frame, point1, point2, (0, 255, 0), 2)
+        elif shape == 'circle':
+            radius = abs(point1 - point2)
+            cv2.circle(frame, centroid, radius,(0, 255, 0), 2)
 
         # 중심 원 그리기
         cv2.circle(frame, centroid, 5, (255,255,255), cv2.FILLED)
