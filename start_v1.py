@@ -1,4 +1,3 @@
-from termios import VEOL
 from ArmingDrone import ArmingDrone
 import cv2
 import time
@@ -39,6 +38,7 @@ ACTIVITY = {
 }
 
 SWITCH = {
+    'skip_frame': True,
     'search_up': True,
     'search_rotate': True,
     'detect_qr': False,
@@ -56,7 +56,7 @@ VELOCITY = {
     'move_tracking': 30,
 }
 
-END = {
+TIME = {
     'skip': 0,
     'hovering': 0,
     'search_up': 0,
@@ -78,7 +78,7 @@ print(drone.get_battery())
 
 # START VIDEO STREAMING
 drone.streamon()
-skip_start = time.time()
+start = time.time()
 
 # TAKE OFF
 drone.takeoff()
@@ -88,8 +88,8 @@ while True:
     frame = cv2.resize(frame, (WIDTH, HEIGHT))
 
     # SKIP FRAME
-    if END['skip'] < SKIP_SEC:
-        END['skip'] = time.time()
+    if SWITCH['skip_frame'] is True and TIME['skip'] - start < SKIP_SEC:
+        TIME['skip'] = time.time()
         cv2.imshow("TEAM : ARMING", frame)
         continue
     
@@ -99,11 +99,11 @@ while True:
 
         if detect_qr is True:
             view_frame += 1
-            print(view_frame)
             if view_frame == VIEW_FRAME:
                 time.sleep(SLEEP['hovering'])
-                print('HOVERING FINISH')
                 view_frame = 0
+
+                start = time.time()
                 activity = ACTIVITY['detect_green']
         else:
             # DOWN
@@ -119,8 +119,13 @@ while True:
 
         # SEARCHING
         if SWITCH['search_up'] is True:
-            SWITCH['search_up'] = False
-            drone.move_up(VELOCITY['search_up'])
+            # drone.move_up(VELOCITY['search_up'])
+            TIME['search_up'] = time.time()
+
+            if TIME['search_up'] - start < SLEEP['search_up']:
+                drone.send_rc_control(0, 0, VELOCITY['search_up'], 0)
+            else:
+                SWITCH['search_up'] = False
         
         # TRACKING
         elif SWITCH['search_up'] is False:
@@ -148,8 +153,9 @@ while True:
                 track = True
                 pError = 0
                 mission = 0
+                start = time.time()
 
-                # CHANG ACTIVITY
+                # CHANGE ACTIVITY
                 activity = ACTIVITY['detect_red']
         
         # DISPLAY
@@ -162,8 +168,13 @@ while True:
 
         # SEARCHING
         if SWITCH['search_up'] is True:
-            SWITCH['search_up'] = False
-            drone.move_up(VELOCITY['search_up'])
+            # drone.move_up(VELOCITY['search_up'])
+            TIME['search_up'] = time.time()
+
+            if TIME['search_up'] - start < SLEEP['search_up']:
+                drone.send_rc_control(0, 0, VELOCITY['search_up'], 0)
+            else:
+                SWITCH['search_up'] = False
 
         elif SWITCH['search_rotate'] is True and detect is False:
             drone.send_rc_control(0, 0, 0, VELOCITY['rotate'])
@@ -197,15 +208,58 @@ while True:
                 track = True
                 pError = 0
                 mission = 0
+                start = time.time()
 
-                # CHANG ACTIVITY
+                # CHANGE ACTIVITY
                 activity = ACTIVITY['detect_blue']
 
     ###################### DETECT B #######################
     elif activity is ACTIVITY['detect_blue']:
-        pass
+        detect, frame, info = drone.identify_shapes(frame, 'circle', 'blue')
+        detect_qr = False
 
+        # SEARCHING
+        if SWITCH['search_up'] is True:
+            # drone.move_up(VELOCITY['search_up'])
+            TIME['search_up'] = time.time()
+
+            if TIME['search_up'] - start < SLEEP['search_up']:
+                drone.send_rc_control(0, 0, VELOCITY['search_up'], 0)
+            else:
+                SWITCH['search_up'] = False
+
+        elif SWITCH['search_rotate'] is True and detect is False:
+            drone.send_rc_control(0, 0, 0, VELOCITY['rotate'])
+
+        # TRACKING
+        elif detect is True:
+            SWITCH['search_rotate'] = False
+
+            # TRACKING GREEN MARKER
+            if track is True:
+                pError, track = drone.track_shape(info, WIDTH, pError, speed = VELOCITY['move_tracking'])
+            
+            # READ QR
+            elif track is False:
+                detect_qr, message = drone.read_qr(frame)
+
+                if detect_qr is False:
+                    # DOWN
+                    drone.send_rc_control(0, 0, VELOCITY['search_down'], 0)
+
+                elif detect_qr is True:
+                    mission = eval(message)
+            
+            # START MISSION
+            if mission:
+                drone.start_mission(mission)
+
+                # FINISH : DRONE LAND
+                drone.land()
+                break
 
     if cv2.waitKey(1) & 0xFF == ord('q'):
         drone.land()
         break
+
+cv2.destroyAllWindows()
