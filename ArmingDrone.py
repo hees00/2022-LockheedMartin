@@ -4,6 +4,8 @@ import numpy as np
 from djitellopy import tello
 from pyzbar.pyzbar import decode
 
+from utils import send_rc_control
+
 
 class ArmingDrone(tello.Tello):
 
@@ -12,9 +14,9 @@ class ArmingDrone(tello.Tello):
     # Values of HSV Color [0] : Lower [1] : Upper
     COLOR = {
       'all': [[0, 0, 0], [255, 255, 255]],
-      'red': [[0, 87, 100], [30, 255, 255]],
-      'blue': [[94, 80, 2], [126, 255, 255]],
-      'green': [[60, 80, 0], [74, 255, 255]],
+      'red': [[0, 228, 46], [179, 255, 255]],
+      'blue': [[95, 111, 0], [125, 255, 255]],
+      'green': [[71, 80, 0], [90, 255, 255]],
     }
 
     # Detecting of Shapes
@@ -25,15 +27,16 @@ class ArmingDrone(tello.Tello):
     }
 
     MOVE = {
-        'shape': [10000, 10500],
+        'shape': [16000, 18000],
     }
 
     PID = [0.4, 0.4, 0]
 
 
     ''' Drone stop ( Hovering ) '''
-    # def stop():
-    #     super.send_rc_control(0, 0, 0, 0)
+    def hover():
+        print('Drone Stop')
+        send_rc_control(0, 0, 0, 0)
         
     ''' Detect Shapes by color '''
     def identify_shapes(self, frame, shapes = 'all', color = 'all'):
@@ -98,7 +101,7 @@ class ArmingDrone(tello.Tello):
 
                 if int(ratio) == 1:
                     print(f"DETECT COLOR\t:    {color.upper()}")
-                    self.__setLabel(frame, info, f'{color.upper()} Marker', shape = 'circle')
+                    self.__setLabel(frame, info, f'{color.upper()} Marker')
                     detect = True
 
         return detect, frame, info
@@ -129,6 +132,8 @@ class ArmingDrone(tello.Tello):
         if x == 0:
             yaw = 0
             error = 0
+        
+        print(area)
 
         self.send_rc_control(0, fb, 0, yaw)
         return error, track
@@ -204,16 +209,13 @@ class ArmingDrone(tello.Tello):
         if shape == 'rectangle':
             # Bounding Box 그리기
             cv2.rectangle(frame, point1, point2, (0, 255, 0), 2)
-        elif shape == 'circle':
-            radius = abs(point1 - point2)
-            cv2.circle(frame, centroid, radius,(0, 255, 0), 2)
+        # elif shape =='circle':
+        #     radius = abs(point1 - point2)
+        #     cv2.circle(frame, centroid, radius,(0, 255, 0), 2) 
 
         # 중심 원 그리기
         cv2.circle(frame, centroid, 5, (255,255,255), cv2.FILLED)
         # Labeling
         cv2.putText(frame, label, point1, self.FONT, 1, (0, 0, 255))
 
-    ''' Initialization SHAPE '''
-    def __initShapes(self):
-        for shape in self.SHAPE:
-            self.SHAPE[shape] = False
+

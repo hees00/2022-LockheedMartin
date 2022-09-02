@@ -302,6 +302,7 @@ def tracking_shape():
 
         if track is True:
             pError, track = drone.track_shape(info, w, pError)
+            
         elif track is False and mission is True:
             drone.start_mission(1)
             drone.rotate_clockwise(180)
