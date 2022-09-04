@@ -4,14 +4,11 @@ import numpy as np
 from djitellopy import tello
 from pyzbar.pyzbar import decode
 
-from utils import send_rc_control
-
-
 class ArmingDrone(tello.Tello):
 
     FONT = cv2.FONT_HERSHEY_SIMPLEX
 
-    # Values of HSV Color [0] : Lower [1] : Upper
+    # Values of HSV Color [0] : Lower / [1] : Upper
     COLOR = {
       'all': [[0, 0, 0], [255, 255, 255]],
       'red': [[0, 228, 46], [179, 255, 255]],
@@ -34,9 +31,9 @@ class ArmingDrone(tello.Tello):
 
 
     ''' Drone stop ( Hovering ) '''
-    def hover():
+    def hover(self):
         print('Drone Stop')
-        send_rc_control(0, 0, 0, 0)
+        self.send_rc_control(0, 0, 0, 0)
         
     ''' Detect Shapes by color '''
     def identify_shapes(self, frame, shapes = 'all', color = 'all'):
@@ -123,6 +120,7 @@ class ArmingDrone(tello.Tello):
         # REGULATE FORWARD OR BACKWARD : fb ( Foward / Backward )
         if area > fb_range[0] and area < fb_range[1]:
             fb = 0
+            track = False
         elif area < fb_range[0] and area != 0:
             fb = speed
         elif area > fb_range[1]:
