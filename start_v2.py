@@ -48,15 +48,16 @@ SLEEP = {
     'skip_frame': 6,
     'hovering': 5,
     'search_up': 1,
+    'position': 0.5,
     'sync': 0.03,
 }
 
 VELOCITY = {
     'search_up': 20,
     'search_down': -20,
-    'rotate_ccw': -40,
-    'rotate_cw': 40,
-    'move_tracking': 24,
+    'rotate_ccw': -80,
+    'rotate_cw': 80,
+    'move_tracking': 30,
     'right': 60,
     'forward': 70,
 }
@@ -112,7 +113,8 @@ def streaming():
                 detect_qr, frame, message = drone.read_qr(frame)
 
                 if detect_qr is True:
-                    mission = eval(message)
+                    
+                    mission = int(eval(message))
                     print(f"Mission : {mission}")
             
             # DISPLAY
@@ -126,7 +128,10 @@ def streaming():
                 detect_qr, frame, message = drone.read_qr(frame)
 
                 if detect_qr is True:
-                    mission = eval(message)
+                    mission = int(eval(message))
+                    print(f"Mission : {mission}")
+                    #여기도 한번?
+                    time.sleep(0.01)
 
             # DISPLAY
             cv2.imshow("TEAM : ARMING", frame)
@@ -139,7 +144,10 @@ def streaming():
                 detect_qr, frame, message = drone.read_qr(frame)
 
                 if detect_qr is True:
-                    mission = eval(message)
+                    mission = int(eval(message))
+                    print(f"Mission : {mission}")
+                    #여기도 한번?
+                    time.sleep(0.01)
 
             # DISPLAY
             cv2.imshow("TEAM : ARMING", frame)
@@ -187,7 +195,7 @@ while True:
             
             # RETURN TO FIRST ALTITUDE
             al_now = drone.get_height()
-            distance = abs(al_init - al_now)
+            distance = abs(al_init - al_now) + 10
 
             if distance >= 20:
                 drone.move_up(distance)
@@ -198,7 +206,6 @@ while True:
 
             # CHANGE ACTIVITY
             activity = ACTIVITY['detect_green']
-
 
     ###################### DETECT G #######################
     elif activity == ACTIVITY['detect_green']:
@@ -225,7 +232,7 @@ while True:
 
                         drone.hover()
 
-                        if sec > 1:
+                        if sec > SLEEP['position']:
                             break
 
                     SWITCH['position'] = False
@@ -234,40 +241,41 @@ while True:
                 print('Part : Detect Green - Tracking . . .')
                 print(f'Now Marker Area : {info[3]} / Track : {track}')
 
-            # DETECT QR
-            elif track is False:
-                print('Part : Detect Green - Searching QR CODE')
+        # DETECT QR
+        elif track is False:
+            print('Part : Detect Green - Searching QR CODE')
 
-                # DOWN
-                if detect_qr is False:
-                    drone.send_rc_control(0, 0, VELOCITY['search_down'], 0)
+            # DOWN
+            if detect_qr is False:
+                drone.send_rc_control(0, 0, VELOCITY['search_down'], 0)
 
-                # GET MISSION NUMBER
-                elif detect_qr is True and mission != 0:
-                    print(f'Part : Detect Green - Start Mission {mission}')
-                    drone.start_mission(mission)
+            # GET MISSION NUMBER
+            elif detect_qr is True:
+                print(f'Part : Detect Green - Start Mission {mission}')
+                drone.hover()
+                drone.start_mission(mission)
 
-                    # RETURN TO FIRST ALTITUDE
-                    al_now = drone.get_height()
-                    distance = int(abs(al_init - al_now))
-                    if distance >= 20:
-                        drone.move_up(distance)
+                # RETURN TO FIRST ALTITUDE
+                al_now = drone.get_height()
+                distance = int(abs(al_init - al_now))
+                if distance >= 20:
+                    drone.move_up(distance)
 
-                    # Plus Movement
-                    drone.move_right(VELOCITY['right'])
-                    drone.move_forward(VELOCITY['forward'])
-                    drone.move_up(20)
+                # Plus Movement
+                drone.move_right(VELOCITY['right'])
+                drone.move_forward(VELOCITY['forward'])
+                drone.move_up(20)
 
-                    # INITIAL VARIABLE
-                    SWITCH['search_rotate'] = True
-                    SWITCH['position'] = True
-                    detect_marker = False
-                    track = True
-                    pError = 0
-                    mission = 0
+                # INITIAL VARIABLE
+                SWITCH['search_rotate'] = True
+                SWITCH['position'] = True
+                detect_marker = False
+                track = True
+                pError = 0
+                mission = 0
 
-                    # CHANGE ACTIVITY
-                    activity = ACTIVITY['detect_red']
+                # CHANGE ACTIVITY
+                activity = ACTIVITY['detect_red']
 
     ###################### DETECT R #######################
     elif activity == ACTIVITY['detect_red']:
@@ -275,7 +283,7 @@ while True:
         # SEARCHING
         if SWITCH['search_rotate'] is True and detect_marker is False:
             print('Part : Detect Red - Search Red Marker')
-            drone.send_rc_control(0, 0, 0, VELOCITY['rotate_ccw'])
+            drone.send_rc_control(0, 0, 0, VELOCITY['rotate_cw'])
 
         # TRACKING
         elif detect_marker is True:
@@ -294,7 +302,7 @@ while True:
 
                         drone.hover()
 
-                        if sec > 1:
+                        if sec > SLEEP['position']:
                             break
 
                     SWITCH['position'] = False
@@ -303,47 +311,48 @@ while True:
                 print('Part : Detect Red - Tracking . . .')
                 print(f'Now Marker Area : {info[3]} / Track : {track}')
 
-            # DETECT QR
-            elif track is False:
-                print('Part : Detect Red - Searching QR CODE')
+        # DETECT QR
+        elif track is False:
+            print('Part : Detect Red - Searching QR CODE')
 
-                # DOWN
-                if detect_qr is False:
-                    drone.send_rc_control(0, 0, VELOCITY['search_down'], 0)
+            # DOWN
+            if detect_qr is False:
+                drone.send_rc_control(0, 0, VELOCITY['search_down'], 0)
 
-                # GET MISSION NUMBER
-                elif detect_qr is True and mission != 0:
-                    print(f'Mission Number : {mission}')
-            
-                    # START MISSION
-                    print(f'Part : Detect Red - Start Mission {mission}')
-                    drone.start_mission(mission)
+            # GET MISSION NUMBER
+            elif detect_qr is True:
+                print(f'Mission Number : {mission}')
+        
+                # START MISSION
+                print(f'Part : Detect Red - Start Mission {mission}')
+                drone.start_mission(mission)
 
-                    # RETURN TO FIRST ALTITUDE
-                    al_now = drone.get_height()
-                    distance = int(abs(al_init - al_now))
+                # RETURN TO FIRST ALTITUDE
+                al_now = drone.get_height()
+                distance = int(abs(al_init - al_now)) + 10
+                if distance >= 20:
                     drone.move_up(distance)
 
-                    # Plus Movement
+                # Plus Movement
 
-                    # INITIAL VARIABLE
-                    SWITCH['search_rotate'] = True
-                    SWITCH['position'] = True
-                    detect_marker = False
-                    track = True
-                    pError = 0
-                    mission = 0
+                # INITIAL VARIABLE
+                SWITCH['search_rotate'] = True
+                SWITCH['position'] = True
+                detect_marker = False
+                track = True
+                pError = 0
+                mission = 0
 
-                    # CHANGE ACTIVITY
-                    activity = ACTIVITY['detect_blue']
-    
+                # CHANGE ACTIVITY
+                activity = ACTIVITY['detect_blue']
+
     ###################### DETECT B #######################
-    elif activity == ACTIVITY['detect_red']:
+    elif activity == ACTIVITY['detect_blue']:
 
         # SEARCHING
         if SWITCH['search_rotate'] is True and detect_marker is False:
             print('Part : Detect Blue - Search Blue Marker')
-            drone.send_rc_control(0, 0, 0, VELOCITY['rotate_ccw'])
+            drone.send_rc_control(0, 0, 0, VELOCITY['rotate_cw'])
 
         # TRACKING
         elif detect_marker is True:
@@ -361,7 +370,7 @@ while True:
 
                         drone.hover()
 
-                        if sec > 1:
+                        if sec > SLEEP['position']:
                             break
                     SWITCH['position'] = False
 
@@ -369,41 +378,35 @@ while True:
                 print('Part : Detect Blue - Tracking . . .')
                 print(f'Now Marker Area : {info[3]} / Track : {track}')
 
-            # DETECT QR
-            elif track is False:
-                print('Part : Detect Blue - Searching QR CODE')
+        # DETECT QR
+        elif track is False:
+            print('Part : Detect Blue - Searching QR CODE')
 
-                # DOWN
-                if detect_qr is False:
-                    drone.send_rc_control(0, 0, VELOCITY['search_down'], 0)
+            # DOWN
+            if detect_qr is False:
+                drone.send_rc_control(0, 0, VELOCITY['search_down'], 0)
 
                 # GET MISSION NUMBER
-                elif detect_qr is True and mission != 0:
-                    print(f'Mission Number : {mission}')
-            
-                    # START MISSION
-                    print(f'Part : Detect Blue - Start Mission {mission}')
-                    drone.start_mission(mission)
+            elif detect_qr is True:
+                print(f'Mission Number : {mission}')
+        
+                
+                # START MISSION
+                print(f'Part : Detect Blue - Start Mission {mission}')
+                drone.start_mission(mission)
 
-                    # RETURN TO FIRST ALTITUDE
-                    al_now = drone.get_height()
-                    distance = int(abs(al_init - al_now))
-                    if distance >= 20:
-                        drone.move_up(distance)
+                # Plus Movement
 
-                    # Plus Movement
+                # INITIAL VARIABLE
+                SWITCH['search_rotate'] = True
+                SWITCH['position'] = True
+                detect_marker = False
+                track = True
+                pError = 0
+                mission = 0
 
-                    # INITIAL VARIABLE
-                    SWITCH['search_rotate'] = True
-                    SWITCH['position'] = True
-                    detect_marker = False
-                    track = True
-                    pError = 0
-                    mission = 0
-
-                    # DRONE LAND
-                    drone.land()
-                    break
-            
+                # DRONE LAND
+                drone.land()
+                break
 
 stream.join()

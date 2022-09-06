@@ -1,5 +1,3 @@
-import time
+a = '10 / 5'
 
-s = time.time()
-print(s)
-
+print(eval(a))

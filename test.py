@@ -267,7 +267,7 @@ def basic_drone_video_streaming():
         frame = drone.get_frame_read().frame
         frame = cv2.resize(frame, (600, 600))
 
-        detect, frame, info = drone.identify_shapes(frame, shapes = 'rectangle', color = 'green')
+        detect, frame, info = drone.identify_shapes(frame, shapes = 'circle', color = 'green')
         
         print(f'DETECT : {detect} / info : {info}')
 

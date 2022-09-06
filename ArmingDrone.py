@@ -27,7 +27,7 @@ class ArmingDrone(tello.Tello):
         'shape': [26000, 27000],
     }
 
-    PID = [0.1, 0.2, 0]
+    PID = [0.2, 0.2, 0]
 
 
     ''' Drone stop ( Hovering ) '''
@@ -90,9 +90,16 @@ class ArmingDrone(tello.Tello):
             # Circle ( ● )
             elif cir and vtc == 8:
                 info = self.__getRectInfo(pts)
-                print(info)
                 area = cv2.contourArea(pts)
                 _, radius = cv2.minEnclosingCircle(pts)
+
+                # print(radius)
+
+                # info = list(info)
+                # info[0] = (info[2][0] - radius, info[2][1] - radius)
+                # info[1] = (info[2][0] + radius, info[2][1] + radius)
+
+                # info = tuple(info)
 
                 ratio = radius * radius * math.pi / area
 
@@ -171,6 +178,7 @@ class ArmingDrone(tello.Tello):
             self.move_down(30)
 
         elif mission_number == 2:
+            self.move_back(50)
             self.flip_forward()
 
         elif mission_number == 3:
