@@ -24,10 +24,10 @@ class ArmingDrone(tello.Tello):
     }
 
     MOVE = {
-        'shape': [16000, 18000],
+        'shape': [26000, 27000],
     }
 
-    PID = [0.4, 0.4, 0]
+    PID = [0.1, 0.2, 0]
 
 
     ''' Drone stop ( Hovering ) '''
@@ -132,6 +132,7 @@ class ArmingDrone(tello.Tello):
             error = 0
         
         print(area)
+        print(f'yaw: {yaw}')
 
         self.send_rc_control(0, fb, 0, yaw)
         return error, track
@@ -215,5 +216,4 @@ class ArmingDrone(tello.Tello):
         cv2.circle(frame, centroid, 5, (255,255,255), cv2.FILLED)
         # Labeling
         cv2.putText(frame, label, point1, self.FONT, 1, (0, 0, 255))
-
 
