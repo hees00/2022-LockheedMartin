@@ -11,9 +11,9 @@ class ArmingDrone(tello.Tello):
     # Values of HSV Color [0] : Lower / [1] : Upper
     COLOR = {
       'all': [[0, 0, 0], [255, 255, 255]],
-      'red': [[0, 228, 46], [179, 255, 255]],
+      'red': [[0, 232, 55], [179, 255, 255]],
       'blue': [[95, 111, 0], [125, 255, 255]],
-      'green': [[71, 80, 0], [90, 255, 255]],
+      'green': [[37, 19, 15], [95, 255, 255]],
     }
 
     # Detecting of Shapes
@@ -92,14 +92,6 @@ class ArmingDrone(tello.Tello):
                 info = self.__getRectInfo(pts)
                 area = cv2.contourArea(pts)
                 _, radius = cv2.minEnclosingCircle(pts)
-
-                # print(radius)
-
-                # info = list(info)
-                # info[0] = (info[2][0] - radius, info[2][1] - radius)
-                # info[1] = (info[2][0] + radius, info[2][1] + radius)
-
-                # info = tuple(info)
 
                 ratio = radius * radius * math.pi / area
 
@@ -195,8 +187,8 @@ class ArmingDrone(tello.Tello):
     def __getRectInfo(self, points):
         # 입력받은 사각형의 정보 추출
         (x, y, w, h) = cv2.boundingRect(points)
-        point1 = (x, y)
-        point2 = (x + w, y + h)
+        point1 = (x - 10, y - 10)
+        point2 = (x + w + 10, y + h + 10)
 
         # 중심 찾기
         centroid_1= int((x + x + w) / 2)

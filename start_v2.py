@@ -10,13 +10,8 @@ Centor Altitude of Circle = 70cm
 Size of QR = 7cm x 7cm
 ALitude of QR = 40 ~ 60cm
 
-1. Takeoff 할 때, QR을 인식했는가 ? 
-2. 그래서 5초간 멈췄는가 ? 
-3. Green Marker를 탐색하기 위해 UP 했는가 ? 
-4. Green Marker를 Tracking 하는가 ? 
-5. Green Marker 근처까지 이동하는가 ? 
-6. QR을 Detect하기 위해, 아래로 잘 내려가는가 ? 
-7. QR message를 읽어, 미션을 수행하는가 ? 
+Thread로 영상과 드론 비행을 나눴습니다.
+
 '''
 
 ##################### CONFIGURATION #########################
@@ -55,16 +50,13 @@ SLEEP = {
 VELOCITY = {
     'search_up': 20,
     'search_down': -20,
-    'rotate_ccw': -80,
-    'rotate_cw': 80,
-    'move_tracking': 30,
+    'rotate_ccw': -70,
+    'rotate_cw': 70,
+    'move_tracking': 25,
     'right': 60,
     'forward': 70,
 }
 
-# activity = ACTIVITY['hovering']
-# detect_qr = False
-# detect_marker = False
 track = True
 
 ######################## READY ###########################
@@ -130,7 +122,6 @@ def streaming():
                 if detect_qr is True:
                     mission = int(eval(message))
                     print(f"Mission : {mission}")
-                    #여기도 한번?
                     time.sleep(0.01)
 
             # DISPLAY
@@ -146,7 +137,6 @@ def streaming():
                 if detect_qr is True:
                     mission = int(eval(message))
                     print(f"Mission : {mission}")
-                    #여기도 한번?
                     time.sleep(0.01)
 
             # DISPLAY
@@ -257,14 +247,11 @@ while True:
 
                 # RETURN TO FIRST ALTITUDE
                 al_now = drone.get_height()
-                distance = int(abs(al_init - al_now))
+                distance = int(abs(al_init - al_now)) + 10
                 if distance >= 20:
                     drone.move_up(distance)
 
-                # Plus Movement
-                drone.move_right(VELOCITY['right'])
-                drone.move_forward(VELOCITY['forward'])
-                drone.move_up(20)
+                # PLUS MOVEMONENT
 
                 # INITIAL VARIABLE
                 SWITCH['search_rotate'] = True
@@ -333,7 +320,7 @@ while True:
                 if distance >= 20:
                     drone.move_up(distance)
 
-                # Plus Movement
+                # PLUS MOVEMONENT
 
                 # INITIAL VARIABLE
                 SWITCH['search_rotate'] = True
@@ -352,7 +339,7 @@ while True:
         # SEARCHING
         if SWITCH['search_rotate'] is True and detect_marker is False:
             print('Part : Detect Blue - Search Blue Marker')
-            drone.send_rc_control(0, 0, 0, VELOCITY['rotate_cw'])
+            drone.send_rc_control(0, 0, 0, VELOCITY['rotate_ccw'])
 
         # TRACKING
         elif detect_marker is True:
@@ -395,7 +382,7 @@ while True:
                 print(f'Part : Detect Blue - Start Mission {mission}')
                 drone.start_mission(mission)
 
-                # Plus Movement
+                # PLUS MOVEMONENT
 
                 # INITIAL VARIABLE
                 SWITCH['search_rotate'] = True
