@@ -1,6 +1,7 @@
 import cv2
 import math
 import numpy as np
+import time
 from djitellopy import tello
 from pyzbar.pyzbar import decode
 
@@ -25,15 +26,41 @@ class ArmingDrone(tello.Tello):
 
     MOVE = {
         'shape': [26000, 27000],
+        'kau': [],
+        'f22': [],
     }
 
     PID = [0.2, 0.2, 0]
-
 
     ''' Drone stop ( Hovering ) '''
     def hover(self):
         print('Drone Stop')
         self.send_rc_control(0, 0, 0, 0)
+
+    ''' Drone moves for sec '''
+    def move_sec(self, rc_control, sec):
+        try:
+            lr = rc_control[0]
+            fb = rc_control[1]
+            ud = rc_control[2]
+            yv = rc_control[3]
+
+            start = time.time()
+
+            while True:
+                end = time.time()
+                duration = end - start
+
+                self.send_rc_control(lr, fb, ud, yv)
+
+                if duration > sec:
+                    break   
+
+        except Exception as e:
+            print(e)
+
+    def detect_handwrititing(self):
+        pass
         
     ''' Detect Shapes by color '''
     def identify_shapes(self, frame, shapes = 'all', color = 'all'):
@@ -68,7 +95,7 @@ class ArmingDrone(tello.Tello):
         cv2. imshow('mask', mask)
         contours,_ = cv2.findContours(mask, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
         for pts in contours:
-            if cv2.contourArea(pts) < 100:
+            if cv2.contourArea(pts) < 1000:
                 continue
             approx = cv2.approxPolyDP(pts, cv2.arcLength(pts, True) * 0.02, True)
             vtc = len(approx)
@@ -101,7 +128,7 @@ class ArmingDrone(tello.Tello):
                     detect = True
 
         return detect, frame, info
-    
+
     ''' Drone track shapes '''
     def track_shape(self, info, w, pError, speed = 20):
         track = True
@@ -129,9 +156,9 @@ class ArmingDrone(tello.Tello):
         if x == 0:
             yaw = 0
             error = 0
-        
-        print(area)
-        print(f'yaw: {yaw}')
+
+        print(f'Area : {area}')
+        print(f'yaw : {yaw}')
 
         self.send_rc_control(0, fb, 0, yaw)
         return error, track
@@ -163,26 +190,51 @@ class ArmingDrone(tello.Tello):
         except Exception as e:
             print(e)
 
+    def display_info(self, frame, label):
+        pass
+
     ''' Start Mission 01 ~ 05 '''
     def start_mission(self, mission_number):
+
+        # Twice to the right 10 10 Twice to the left 10 10 [cm]
         if mission_number == 1:
-            self.move_up(30)
-            self.move_down(30)
+            self.move_sec([10, 0, 0, 0], 1)
+            self.move_sec([10, 0, 0, 0], 1)
+            self.move_sec([-10, 0, 0, 0], 1)
+            self.move_sec([-10, 0, 0, 0], 1)
 
+        # Left and right 30 [cm]
         elif mission_number == 2:
-            self.move_back(50)
-            self.flip_forward()
+            pass
 
+        # 360 degree rotation
         elif mission_number == 3:
-            self.move_down(30)
-            self.move_up(30)
+            pass
 
+        # Draw a rectangle right > up > left > down
         elif mission_number == 4:
+            pass
+
+        # Adjust the angle to draw a triangle
+        elif mission_number == 5:
+            pass
+
+        # Draw a rectangle in the left > bottom > right > top
+        elif mission_number == 6:
+            pass
+        
+        # flip left
+        elif mission_number == 7:
             self.flip_left()
 
-        elif mission_number == 5:
-            self.rotate_clockwise(360)
-    
+        # Up and down 30 [cm]
+        elif mission_number == 8:
+            pass
+
+        # Left 30cm> 180 degrees rotation > Right 30cm > 180 degrees rotation
+        elif mission_number == 9:
+            pass
+
     ''' Get info of rectangle  '''
     def __getRectInfo(self, points):
         # 입력받은 사각형의 정보 추출
