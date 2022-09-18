@@ -14,3 +14,8 @@ pygame
 # Tello ---------------------------------
 djitellopy
 av==8.0.3
+
+# Yolo ----------------------------------
+opencv-python
+imread-from-url
+onnxruntime-gpu
