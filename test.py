@@ -2,11 +2,12 @@
 
 ###################### CONFIGURATION #######################
 
-from test_func import hsv_measure, tracking_shape, video_stream_for_detect, detect_shape_by_color
+from .test_func import video_stream_for_detect
+from test_func import hsv_measure, tracking_shape, detect_shape_by_color, yolo_object_detect
 
 TEST = {
     'detect_shape': 1,
-    'test_drone_move': 2,
+    'yolo_object_detect': 2,
     'measure_hsv': 3,
     'basic_video_stream': 4,
     'tracking_shape': 5,
@@ -17,7 +18,7 @@ message = \
 '''
 ============= SELECT TEST =============
 1 : Detect Shape by Color
-2 : Test Drone Movement
+2 : Detect Object by Yolo
 3 : Video Streaming for HSV measurements
 4 : Basic Drone Video Streaming
 5 : Tracking Shape
@@ -32,8 +33,8 @@ while option < 1 or option > 5:
 if option == TEST['detect_shape']:
     detect_shape_by_color()
 
-elif option == TEST['test_drone_move']:
-    pass
+elif option == TEST['yolo_object_detect']:
+    yolo_object_detect()
 
 elif option == TEST['measure_hsv']:
     hsv_measure()

@@ -227,7 +227,7 @@ while True:
 
                     SWITCH['position'] = False
 
-                pError, track = drone.track_shape(info, WIDTH, pError, speed = VELOCITY['move_tracking'])
+                pError, track = drone.track_object(info, WIDTH, pError, speed = VELOCITY['move_tracking'])
                 print('Part : Detect Green - Tracking . . .')
                 print(f'Now Marker Area : {info[3]} / Track : {track}')
 
@@ -294,7 +294,7 @@ while True:
 
                     SWITCH['position'] = False
 
-                pError, track = drone.track_shape(info, WIDTH, pError, speed = VELOCITY['move_tracking'])
+                pError, track = drone.track_object(info, WIDTH, pError, speed = VELOCITY['move_tracking'])
                 print('Part : Detect Red - Tracking . . .')
                 print(f'Now Marker Area : {info[3]} / Track : {track}')
 
@@ -361,7 +361,7 @@ while True:
                             break
                     SWITCH['position'] = False
 
-                pError, track = drone.track_shape(info, WIDTH, pError, speed = VELOCITY['move_tracking'])
+                pError, track = drone.track_object(info, WIDTH, pError, speed = VELOCITY['move_tracking'])
                 print('Part : Detect Blue - Tracking . . .')
                 print(f'Now Marker Area : {info[3]} / Track : {track}')
 
