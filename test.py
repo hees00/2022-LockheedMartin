@@ -19,7 +19,7 @@ message = \
 ============= SELECT TEST =============
 1 : Detect Shape by Color
 2 : Detect Object by Yolo
-3 : Video Streaming for HSV measurements
+3 : HSV measurements
 4 : Basic Drone Video Streaming
 5 : Tracking Shape
 '''

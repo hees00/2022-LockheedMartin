@@ -1,28 +1,18 @@
-from threading import Thread
 from ArmingDrone import ArmingDrone
-import cv2
-import time
 
 # CONNECT TO TELLO
 drone = ArmingDrone()
 drone.connect()
 
+# -10 ~ 10 ↑
+# 
+
 # START VIDEO STREAMING
 drone.streamon()
 print(f'Battery : {drone.get_battery()}/100')
+drone.takeoff()
 
-while True:
-      frame = drone.get_frame_read().frame
-      frame = cv2.resize(frame, (800, 640))
 
-      frame, info = drone.detect_object(frame, objects = ['F22', 'KAU_Marker'])
-      print(info)
-      # DISPLAY
-      cv2.imshow("TEAM : ARMING", frame)
-
-      if cv2.waitKey(1) & 0xFF == ord('q'):
-          print(f'Battery : {drone.get_battery()}/100')
-          drone.land()
-          break
-
+print(drone.get_yaw())
+drone.land()
 

@@ -3,7 +3,7 @@ import cv2
 
 def yolo_object_detect():
 
-    objects = input('Detect Objects (A380 / Apache / F22 / KAU_Marker / KT-1) [공백으로 구분] : ').split()
+    objects = input('Detect Objects (A380 / Apache / F22 / KAU / KT-1) [공백으로 구분] : ').split()
 
     # CONNECT TO TELLO
     drone = ArmingDrone()

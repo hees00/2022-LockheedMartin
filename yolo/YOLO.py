@@ -113,7 +113,6 @@ class YOLO:
 
         # Extract the boxes and class ids
         # TODO: Separate based on batch number
-        batch_number = predictions[:, 0]
         class_ids = predictions[:, 1]
         boxes = predictions[:, 2:]
 
@@ -145,7 +144,7 @@ class YOLO:
         boxes *= np.array([self.img_width, self.img_height, self.img_width, self.img_height])
         return boxes
 
-    def draw_detections(self, image, draw_info = None, draw_scores=True, mask_alpha=0.4):
+    def draw_detections(self, image, draw_info = None, mask_alpha=0.4):
 
         if draw_info is not None:
             self.boxes, self.scores, self.class_ids = draw_info

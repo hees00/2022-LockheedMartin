@@ -18,7 +18,7 @@ class ArmingDrone(tello.Tello):
       'red': [[0, 232, 55], [179, 255, 255]],
       'blue': [[95, 111, 0], [125, 255, 255]],
       'green': [[37, 19, 15], [95, 255, 255]],
-      'black': [[], []],
+      'black': [[0, 0, 0], [0, 0, 0]],
     }
 
     # Detecting of Shapes
@@ -36,11 +36,19 @@ class ArmingDrone(tello.Tello):
 
     PID = [0.2, 0.2, 0]
 
-    model_name = 'yolov5n.onnx'
-    conf_thres = 0.7
-    iou_thres = 0.3
-    model_path = f'./models/{model_name}'
-    yolo_detector = YOLO(model_path, conf_thres = conf_thres, iou_thres = iou_thres)
+    YOLO_CONFIG = {
+        'model_name': 'yolov5n.onnx',
+        'conf_thres': 0.7,
+        'iou_thres': 0.3,
+    }
+
+    TIME = 0
+
+    TIME_LIMIT = 100
+
+    # Create YOLO DETECTOR MODEL
+    model_path = f'.models/{YOLO_CONFIG["model_name"]}'
+    yolo_detector = YOLO(model_path, conf_thres = YOLO_CONFIG['conf_thres'], iou_thres = YOLO_CONFIG['iou_thres'])
 
     def hover(self):
         ''' Drone stop ( Hovering ) '''
@@ -86,38 +94,45 @@ class ArmingDrone(tello.Tello):
 
     def detect_object(self, frame, objects = 'all'):
         ''' 
-        Detect Objects : A380 / Apache / F22 / KAU_Marker / KT-1 
+        Detect Objects : A380 / Apache / F22 / KAU / KT-1 
 
             @ Param <Numpy> frame           : Image frame\n
             @ Param <list>  objects         : Set object to detect [Default : all]\n
         
         '''
 
-        boxes, scores, class_ids = self.yolo_detector(frame)        
+        boxes, scores, class_ids = self.yolo_detector(frame)
+        detect = {}
+        rectInfo = {}
 
         if objects != 'all':
             classes = self.yolo_detector.get_classes_list()
             id_list = []
-            rectInfo = {}
 
             for obj in objects:
+                obj = obj.upper()
                 id_num = classes.index(obj)
                 id_list.append(id_num)
+                detect[obj] = False
 
             objects_info = list(zip(boxes, scores, class_ids))
             filter_boxes = []
             filter_scores = []
             filter_class_ids = []
 
+            # Filtering classes
             for object_info in objects_info:
                 if object_info[2] in id_list:
                     box = object_info[0]
                     score = object_info[1]
                     class_id = object_info[2]
 
+                    # Save Bounding Box Info
                     xywh = self.__xyxy2xywh(box)
                     ppca = self.__xywh2ppca(xywh)
                     rectInfo[classes[class_id]] = ppca
+
+                    detect[classes[class_id]] = True
 
                     filter_boxes.append(box)
                     filter_scores.append(score)
@@ -130,7 +145,7 @@ class ArmingDrone(tello.Tello):
         elif objects == 'all':
             draw_frame = self.yolo_detector.draw_detections(frame)
 
-        return draw_frame, rectInfo
+        return detect, draw_frame, rectInfo
         
     def identify_shapes(self, frame, shapes = 'all', color = 'all'):
         ''' Detect Shapes by color '''
@@ -200,7 +215,7 @@ class ArmingDrone(tello.Tello):
 
         return detect, frame, info
 
-    def track_object(self, info, w, pError, object = 'shape' ,speed = 20):
+    def track_object(self, info, w, pError, objects = 'shape' ,speed = 20):
         ''' Drone track object '''
 
         track = True
@@ -214,16 +229,21 @@ class ArmingDrone(tello.Tello):
         yaw = self.PID[0] * error + self.PID[1] * (error - pError)
         yaw = int(np.clip(yaw, -100, 100))
 
-        fb_range = self.AREA[object.lower()]
+        fb_range = self.AREA[objects.lower()]
         # REGULATE FORWARD OR BACKWARD : fb ( Foward / Backward )
         if area > fb_range[0] and area < fb_range[1]:
             fb = 0
-            track = False
+            self.__initTime()
         elif area < fb_range[0] and area != 0:
             fb = speed
+            self.TIME += 1
         elif area > fb_range[1]:
             fb = 0
+            self.TIME += 1
+
+        if self.TIME == self.TIME_LIMIT:
             track = False
+
 
         if x == 0:
             yaw = 0
@@ -231,6 +251,7 @@ class ArmingDrone(tello.Tello):
 
         print(f'Area : {area}')
         print(f'yaw : {yaw}')
+        print(f'TIME : {self.TIME}')
 
         self.send_rc_control(0, fb, 0, yaw)
         return error, track
@@ -312,13 +333,13 @@ class ArmingDrone(tello.Tello):
 
     # Setter
     def setYoloModel(self, model_name):
-        self.model_name = model_name
+        self.YOLO_CONFIG['model_name'] = model_name
 
     def setConf(self, conf_thres):
-        self.conf_thres = conf_thres
+        self.YOLO_CONFIG['conf_thres'] = conf_thres
 
     def setIou(self, iou_thres):
-        self.iou_thres = iou_thres
+        self.YOLO_CONFIG['iou_thres'] = iou_thres
 
     def __getRectInfo(self, points):
         ''' Get info of rectangle  '''
@@ -368,4 +389,6 @@ class ArmingDrone(tello.Tello):
 
         return (point1, point2, centroid, area)
 
+    def __initTime(self):
+        self.TIME = 0
     

@@ -34,6 +34,7 @@ SWITCH = {
     'position': True,
     'go_center': True,
     'detect_handwritting': False,
+    'detect_kau': True,
 }
 
 SLEEP = {
@@ -75,8 +76,8 @@ print(al_init)
 
 ############## THREAD : VIDEO STREAMING #################
 def streaming():
-    print('Start Video Stream')
-    global course, detect_qr, message, detect_marker, info, activity, pError, mission, color, detect_hw
+    print('Team Arming : Start Video Stream')
+    global course, detect_qr, message, detect_marker, info, activity, pError, mission, color, detect_hw, detect_objects
 
     course = COURSE['recognition_flag']
     activity = ACTIVITY['hovering']
@@ -124,10 +125,10 @@ def streaming():
             # RECOGNIZE HANDWRITTING
         
         elif course == COURSE['tracking_kau']:
-            frame, info = drone.detect_object(frame, ['kau'])
+            detect_objects, frame, info = drone.detect_object(frame, ['KAU'])
         
         elif course == COURSE['find_f22']:
-            frame, info = drone.detect_object(frame, ['F22'])        
+            detect_objects, frame, info = drone.detect_object(frame, ['F22'])        
 
         # DISPLAY
         cv2.imshow("TEAM : ARMING", frame)
@@ -229,17 +230,30 @@ while True:
                     mission = 0
 
                     if i < len(seq):
-                      # CHANGE ACTIVITY
-                      activity = ACTIVITY[f'detect_{seq[i]}']
-                      i += 1
+                        # CHANGE ACTIVITY
+                        activity = ACTIVITY[f'detect_{seq[i]}']
+                        i += 1
 
                     else:
-                      course = COURSE['tracking_kau']
+                        course = COURSE['tracking_kau']
 
 
     ########### COURSE 2 : TRACKING KAU MARKER ############
     elif course == COURSE['tracking_kau']:
-        pass
+        if SWITCH['detect_kau'] is True:
+            drone.send_rc_control(0, 0, 0, VELOCITY['rotate_cw'])
+
+            if detect_objects['KAU'] is True:
+                SWITCH['detect_kau'] = False
+                drone.hover_sec(0.5)
+
+        elif SWITCH['detect_kau'] is False:
+            print('Course : Tracking KAU Marker - Tracking . . .')
+            
+            if detect_objects['KAU'] is True:
+                pError, track = drone.track_object(info, WIDTH, pError, objects = 'KAU' ,speed = VELOCITY['move_tracking'])
+
+
   
     ################ COURSE 3 : FIND F-22 #################
     elif course == COURSE['find_f22']:
