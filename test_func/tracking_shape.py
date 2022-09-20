@@ -16,35 +16,21 @@ def tracking_shape():
 
     drone.streamon()
     drone.takeoff()
-    al_init = drone.get_height()
-    
-    print(" 이륙 직후 고도 : ",al_init)
+    drone.move_up(30)
 
     while True:
         frame = drone.get_frame_read().frame
         frame = cv2.resize(frame, (w, h))
 
-        detect, frame, info = drone.identify_shapes(frame, shapes = shape, color = color)
+        _, frame, info = drone.detect_object(frame, objects = objects)
+        print(info)
 
-        if track is True:
-            pError, track = drone.track_shape(info, w, pError)
+        if track is True and len(info) != 0:
+            pError, track = drone.track_object(info['KAU'], w, pError, objects = objects[0])
             
-        elif track is False and mission is True:
-            qr_detect,frame,qr_message = drone.read_qr(frame)
-
-            if qr_detect is False:
-                drone.send_rc_control(0, 0, -20, 0)
-
-            elif qr_detect:
-                drone.start_mission(eval(qr_message))
-                mission = False
-                print("qr mission Complete")
-                al_now = drone.get_height()
-                distance = abs(al_init - al_now)
-                if distance > 20:
-                    drone.move_up(int(distance))
-                print("미션 끝난 후 고도 : ",al_now )
-                print("올라간 후 고도 : ",  drone.get_height())
+        elif track is False:
+            print('Track is False')
+            drone.land()
 
         cv2.imshow('Tracking', frame)
         if cv2.waitKey(1) & 0xFF == ord('q'):

@@ -17,7 +17,7 @@ class ArmingDrone(tello.Tello):
       'red': [[0, 232, 55], [179, 255, 255]],
       'blue': [[95, 111, 0], [125, 255, 255]],
       'green': [[37, 19, 15], [95, 255, 255]],
-      'black': [[0, 0, 0], [179, 255, 45]],
+      'black': [[0, 0, 0], [179, 255, 20]],
     }
 
     # Detecting of Shapes
@@ -29,8 +29,8 @@ class ArmingDrone(tello.Tello):
 
     AREA = {
         'shape': [26000, 27000],
-        'kau': [],
-        'f22': [],
+        'kau': [26000, 27000],
+        'f22': [26000, 27000],
     }
 
     PID = [0.2, 0.2, 0]
@@ -44,7 +44,7 @@ class ArmingDrone(tello.Tello):
     MIN_PIX = 28
 
     TIME = 0
-    TIME_LIMIT = 100
+    TIME_LIMIT = 30
 
     # Create YOLO DETECTOR MODEL
     model_path = f'./models/{YOLO_CONFIG["model_name"]}'
@@ -53,7 +53,6 @@ class ArmingDrone(tello.Tello):
     def hover(self):
         ''' Drone stop ( Hovering ) '''
 
-        print('Drone Stop')
         self.send_rc_control(0, 0, 0, 0)
 
     def hover_sec(self, sec):
@@ -210,6 +209,7 @@ class ArmingDrone(tello.Tello):
         elif objects == 'all':
             draw_frame = self.yolo_detector.draw_detections(frame)
 
+
         return detect, draw_frame, rectInfo
 
     def detect_number(self, frame):
@@ -277,17 +277,19 @@ class ArmingDrone(tello.Tello):
         # REGULATE FORWARD OR BACKWARD : fb ( Foward / Backward )
         if area > fb_range[0] and area < fb_range[1]:
             fb = 0
-            self.__initTime()
+            self.TIME += 1
+
         elif area < fb_range[0] and area != 0:
             fb = speed
-            self.TIME += 1
+            self.__initTime()
+
         elif area > fb_range[1]:
             fb = 0
             self.TIME += 1
 
+
         if self.TIME == self.TIME_LIMIT:
             track = False
-
 
         if x == 0:
             yaw = 0
@@ -333,24 +335,32 @@ class ArmingDrone(tello.Tello):
 
         # After Back 30, Forward 30 [cm]
         if mission_number == 1:
-            self.move_sec([0, -60, 0, 0], 0.5)
-            self.move_sec([0, 60, 0, 0], 0.5)
+            self.move_sec([0, -30, 0, 0], 1)
+            self.hover_sec(1)
+            self.move_sec([0, 30, 0, 0], 1)
+            self.hover_sec(1)
 
         # Left and right 30 [cm]
         elif mission_number == 2:
-            self.move_sec([60, 0, 0 ,0], 0.5)
-            self.move_sec([-60, 0, 0 ,0], 0.5)
+            self.move_sec([30, 0, 0, 0], 1)
+            self.hover_sec(1)
+            self.move_sec([-30, 0, 0, 0], 1)
+            self.hover_sec(1)
 
         # 360 degree rotation
         elif mission_number == 3:
-            self.move_sec([0, 0, 0, 360], 1)
+            self.rotate_clockwise(360)
 
         # Draw a rectangle right > up > left > down
         elif mission_number == 4:
-            self.move_sec([-60, 0, 0, 0], 0.5)
-            self.move_sec([0, 0, 60, 0], 0.5)
-            self.move_sec([60, 0, 0, 0], 0.5)
-            self.move_sec([0, 0, -60, 0], 0.5)
+            self.move_sec([-30, 0, 0, 0], 1)
+            self.hover_sec(1)
+            self.move_sec([0, 0, 30, 0], 1)
+            self.hover_sec(1)
+            self.move_sec([30, 0, 0, 0], 1)
+            self.hover_sec(1)
+            self.move_sec([0, 0, -30, 0], 1)
+            self.hover_sec(1)
 
         # Flip Backward
         elif mission_number == 5:
