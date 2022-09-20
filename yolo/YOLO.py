@@ -166,3 +166,6 @@ class YOLO:
 
     def get_classes_list(self):
         return class_names
+
+    def set_classes_list(self, classes):
+        class_names = classes

@@ -10,6 +10,7 @@ pillow
 scipy
 pyzbar
 pygame
+tensorflow
 
 # Tello ---------------------------------
 djitellopy
@@ -18,3 +19,4 @@ av==8.0.3
 # Yolo ----------------------------------
 imread-from-url
 onnxruntime-gpu
+

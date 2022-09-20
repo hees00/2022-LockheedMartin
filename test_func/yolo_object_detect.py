@@ -1,5 +1,5 @@
-from ArmingDrone import ArmingDrone
 import cv2
+from ArmingDrone import ArmingDrone
 
 def yolo_object_detect():
 
@@ -13,11 +13,14 @@ def yolo_object_detect():
     drone.streamon()
     print(f'Battery : {drone.get_battery()}/100')
 
+    drone.setIou(0.1)
+
     while True:
           frame = drone.get_frame_read().frame
           frame = cv2.resize(frame, (800, 640))
 
-          frame, info = drone.detect_object(frame, objects = objects)
+          _, frame, info = drone.detect_object(frame, objects = objects)
+          print(info)
 
           # DISPLAY
           cv2.imshow("TEAM : ARMING", frame)

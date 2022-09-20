@@ -1,7 +1,6 @@
 import cv2
 from ArmingDrone import ArmingDrone
 
-
 def video_stream_for_detect():
     drone = ArmingDrone()
     drone.connect()

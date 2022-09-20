@@ -8,10 +8,7 @@ def tracking_shape():
     w = 600
     h = 600
 
-    shape = input('Enter a shape to track ( Rectangle / Circle ) : ')
-    color = input('Enter a color to detect ( Red / Blue / Green ) : ')
-    shape = shape.lower()
-    color = color.lower()
+    objects = input('Detect Objects (A380 / Apache / F22 / KAU / KT-1) [공백으로 구분] : ').split()
 
     drone = ArmingDrone()
     drone.connect()
