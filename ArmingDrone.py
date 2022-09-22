@@ -1,3 +1,4 @@
+from ast import expr_context
 import cv2
 import math
 import numpy as np
@@ -10,14 +11,19 @@ from yolo.YOLO import YOLO
 class ArmingDrone(tello.Tello):
 
     FONT = cv2.FONT_HERSHEY_SIMPLEX
+    BOX_COLOR = (253, 203, 110)
+    FONT_COLOR = (23, 66, 3)
+    
 
     # Values of HSV Color [0] : Lower / [1] : Upper
+    # [[0, 50, 50], [180, 255, 255]]
+    # 'red': [[0, 232, 55], [179, 255, 255]],
     COLOR = {
       'all': [[0, 0, 0], [255, 255, 255]],
-      'red': [[0, 232, 55], [179, 255, 255]],
-      'blue': [[95, 111, 0], [125, 255, 255]],
+      'red': [[136, 87, 111], [180, 255, 255]],
+      'blue': [[95, 111, 50], [125, 255, 255]],
       'green': [[37, 19, 15], [95, 255, 255]],
-      'black': [[0, 0, 0], [179, 255, 20]],
+      'black': [[0, 0, 0], [179, 255, 35]],
     }
 
     # Detecting of Shapes
@@ -41,14 +47,24 @@ class ArmingDrone(tello.Tello):
         'iou_thres': 0.3,
     }
 
+    NUMBER_CONFIG = {
+        'model_name': 'MnistCNN.onnx',
+        'minArea': 500,
+        'max_val': 10,
+    }
+
     MIN_PIX = 28
 
     TIME = 0
     TIME_LIMIT = 30
 
     # Create YOLO DETECTOR MODEL
-    model_path = f'./models/{YOLO_CONFIG["model_name"]}'
-    yolo_detector = YOLO(model_path, conf_thres = YOLO_CONFIG['conf_thres'], iou_thres = YOLO_CONFIG['iou_thres'])
+    yolo_model_path = f'./models/{YOLO_CONFIG["model_name"]}'
+    yolo_detector = YOLO(yolo_model_path, conf_thres = YOLO_CONFIG['conf_thres'], iou_thres = YOLO_CONFIG['iou_thres'])
+
+    # Create NUMBER DETECTOR MODEL
+    number_model_path = f'./models/{NUMBER_CONFIG["model_name"]}'
+    number_detector = cv2.dnn.readNet('./models/MnistCNN.onnx')
 
     def hover(self):
         ''' Drone stop ( Hovering ) '''
@@ -116,6 +132,7 @@ class ArmingDrone(tello.Tello):
         blur = cv2.medianBlur(s, 5)
         el = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (15, 15))
         tmp = cv2.erode(blur, el, iterations = 1)
+
 
         (_, mask) = cv2.threshold(tmp, 0, 255, cv2.THRESH_BINARY)
 
@@ -209,55 +226,79 @@ class ArmingDrone(tello.Tello):
         elif objects == 'all':
             draw_frame = self.yolo_detector.draw_detections(frame)
 
-
         return detect, draw_frame, rectInfo
 
-    def detect_number(self, frame):
-        frame = cv2.resize(frame, (480, 480))
-        img_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    def detect_number(self, frame, circleInfo):
+        ''' 
+        Detect number : 1 / 2 / 3 / 4 / 5 / 6 / 7 / 8 / 9
 
-        _, img_binary = cv2.threshold(img_gray, 20, 255, cv2.THRESH_BINARY_INV)
+            @ Param <Numpy> frame           : Image frame\n
+            @ Param <tuple> circleInfo      : Circle Info (point1, point2, center, area)\n
+        
+        '''
+        model = self.number_detector
+        detect = False
+        number = 0
 
-        kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (11, 11))
-        img_binary = cv2.morphologyEx(img_binary, cv2.MORPH_CLOSE, kernel)
+        try:
+            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            _, binary = cv2.threshold(gray, 40, 255, cv2.THRESH_BINARY_INV)
 
-        contours, _ = cv2.findContours(img_binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            start_x = circleInfo[0][0]
+            end_x = circleInfo[1][0] + 1
+            start_y = circleInfo[1][1] + 10
 
-        max_area = 0
-        max_bounding = None
-        for contour in contours:
-            x, y, w, h = cv2.boundingRect(contour)
+            kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (5,5))
+            binary = cv2.morphologyEx(binary, cv2.MORPH_CLOSE, kernel)
+            binary = binary[start_y:, start_x: end_x]
+            cv2.imshow('digit_2', binary)
 
-            area = w * h
-            if area > max_area:
-                max_area = area
-                max_bounding = (x, y, w, h)
+            contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
+            max_area = 0
+            max_bounding = None
+            for contour in contours:
+                x, y, w, h = cv2.boundingRect(contour)
+                area = w*h
 
-        x, y, w, h = max_bounding
+                if area < self.NUMBER_CONFIG['minArea']:
+                    continue
 
-        if (w < self.MIN_PIX or h < self.MIN_PIX):
-            return 0, 0
+                if area >= max_area:
+                    max_area = area
+                    max_bounding = (x, y, w, h)
 
-        length = max(w, h) + 60
-        img_digit = np.zeros((length, length, 1), np.uint8)
-        img_digit = img_binary[ y:y + length, x:x + length ]
+            x, y, w, h = max_bounding
+            length = max(w, h) + 10
+            new_x, new_y = x + w// 2, y + h // 2
+            number_box = np.zeros((length, length,1), np.uint8)
+            number_box = binary[new_y - length//2 : new_y + length//2, new_x - length//2 :new_x + length//2]
 
-        model = cv2.dnn.readNet('./models/mnist.onnx')
+            cv2.imshow('digit', number_box)
 
-        blob = cv2.dnn.blobFromImage(self.__norm_digit(img_digit), 1/255.0, (28, 28))
-        model.setInput(blob)
-        prob = model.forward() # 확률 값 출력, 확률의 최댓값이 인식한 클래스 의미
+            blob = cv2.dnn.blobFromImage(number_box, 1 / 255., (28, 28))
+            model.setInput(blob)
+            prob = model.forward()
+            # maxVal : Probability / maxLoc[0] : Class
+            _, maxVal, _, maxLoc = cv2.minMaxLoc(prob)
+            if maxVal > self.NUMBER_CONFIG['max_val']:
+                number = maxLoc[0]
 
-        _, maxVal, _, maxLoc = cv2.minMaxLoc(prob)
-        digit = maxLoc[0] # [0]은 클래스, [1]은 확률
-        cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 255, 0), 2)
+            if number != 0:
+                x = x + start_x
+                y = y + start_y
 
-        location = (x + int(w * 0.5), y - 10)
-        font = cv2.FONT_HERSHEY_COMPLEX
-        fontScale = 1.2
-        cv2.putText(frame, str(digit), location, font, fontScale, (0, 255, 0), 2)
+                # Draw Bounding Box
+                cv2.rectangle(frame, (x, y), (x + w, y + h), self.BOX_COLOR, 2)
+                
+                # Put Text
+                location = (x + int(w * 0.5), y - 10)
+                cv2.putText(frame, str(number), location, self.FONT, 1, self.FONT_COLOR, 2)
+                detect = True
+ 
+        except Exception as e:
+            pass
 
-        return frame, digit
+        return detect, frame, number
 
     def track_object(self, info, w, pError, objects = 'shape' ,speed = 20):
         ''' Drone track object '''
@@ -277,7 +318,11 @@ class ArmingDrone(tello.Tello):
         # REGULATE FORWARD OR BACKWARD : fb ( Foward / Backward )
         if area > fb_range[0] and area < fb_range[1]:
             fb = 0
-            self.TIME += 1
+
+            if objects == 'shape':
+                track = False
+            else:
+                self.TIME += 1
 
         elif area < fb_range[0] and area != 0:
             fb = speed
@@ -285,7 +330,11 @@ class ArmingDrone(tello.Tello):
 
         elif area > fb_range[1]:
             fb = 0
-            self.TIME += 1
+
+            if objects == 'shape':
+                track = False
+            else:
+                self.TIME += 1
 
 
         if self.TIME == self.TIME_LIMIT:
@@ -364,24 +413,32 @@ class ArmingDrone(tello.Tello):
 
         # Flip Backward
         elif mission_number == 5:
+            self.move_sec([0, 60, 0, 0], 1)
+            self.hover_sec(1)
             self.flip_back()
 
         # Draw a rectangle in the left > bottom > right > top
         elif mission_number == 6:
-            self.move_sec([0, 0, 60, 0], 0.5)
+            self.move_sec([0, 0, 30, 0], 1)
+            self.hover_sec(1)
             self.flip_back()
-            self.move_sec([0, 0, -60, 0], 0.5)
+            self.hover_sec(1)
+            self.move_sec([0, 0, -30, 0], 1)
+            self.hover_sec(1)
         
         # flip left
         elif mission_number == 7:
+            self.move_sec([-60, 0, 0, 0], 1)
+            self.hover_sec(1)
             self.flip_left()
 
         # Up and down 30 [cm]
         elif mission_number == 8:
-            self.move_sec([0, 0, 60, 0], 0.5)
-            self.move_sec([0, 0, -60, 0], 0.5)
+            self.move_sec([0, 0, 30, 0], 1)
+            self.hover_sec(1)
+            self.move_sec([0, 0, -30, 0], 1)
 
-        # Left 30cm> 180 degrees rotation > Right 30cm > 180 degrees rotation
+        # Capture number
         elif mission_number == 9:
             pass
 
@@ -410,12 +467,12 @@ class ArmingDrone(tello.Tello):
         
         if shape == 'rectangle':
             # Draw Bounding Bow
-            cv2.rectangle(frame, point1, point2, (0, 255, 0), 2)
+            cv2.rectangle(frame, point1, point2, self.BOX_COLOR, 2)
 
         # Draw a center circle
-        cv2.circle(frame, centroid, 5, (255,255,255), cv2.FILLED)
+        cv2.circle(frame, centroid, 5, (0, 255, 0), cv2.FILLED)
         # Labeling
-        cv2.putText(frame, label, point1, self.FONT, 1, (0, 0, 255))
+        cv2.putText(frame, label, point1, self.FONT, 1, self.FONT_COLOR, cv2.LINE_4)
 
     def __xyxy2xywh(self, coords):
         ''' Convert bounding box (x1, y1, x2, y2) to bounding box (x, y, w, h) '''
@@ -441,22 +498,7 @@ class ArmingDrone(tello.Tello):
         # Finding the area
         area = int(w * h)
 
-        return (point1, point2, centroid, area)
-
-    # 영상의 위치 정규화
-    def __norm_digit(img):
-        # 무게 중심 좌표 추출
-        m = cv2.moments(img)
-        cx = m['m10'] / m['m00']
-        cy = m['m01'] / m['m00']
-        h, w = img.shape[:2]
-        
-        # affine 행렬 생성
-        aff = np.array([[1, 0, w/2 - cx], [0, 1, h/2 - cy]], dtype=np.float32)
-        
-        # warpAffine을 이용해 기하학 변환
-        dst = cv2.warpAffine(img, aff, (0, 0))
-        return dst
+        return (point1, point2, centroid, area)        
 
     def __initTime(self):
         self.TIME = 0
