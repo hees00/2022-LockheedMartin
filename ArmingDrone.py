@@ -5,23 +5,28 @@ import numpy as np
 import time
 from djitellopy import tello
 from pyzbar.pyzbar import decode
-
 from yolo.YOLO import YOLO
 
 class ArmingDrone(tello.Tello):
 
     FONT = cv2.FONT_HERSHEY_SIMPLEX
-    BOX_COLOR = (253, 203, 110)
-    FONT_COLOR = (23, 66, 3)
-    
+    BOX_COLOR = (1, 41, 95)
+    FONT_COLOR = (67, 127, 151)
 
+    WIDTH = 840
+    HEIGHT = 720
+
+    '''
+    Red hsv list 
+
+    1. (0, 141, 72), (179, 255, 255) < best >
+    
+    '''
     # Values of HSV Color [0] : Lower / [1] : Upper
-    # [[0, 50, 50], [180, 255, 255]]
-    # 'red': [[0, 232, 55], [179, 255, 255]],
     COLOR = {
-      'all': [[0, 0, 0], [255, 255, 255]],
-      'red': [[136, 87, 111], [180, 255, 255]],
-      'blue': [[95, 111, 50], [125, 255, 255]],
+      'all': [[0, 0, 0], [179, 255, 255]],
+      'red': [[0, 141, 72], [179, 255, 255]],
+      'blue': [[95, 111, 35], [127, 255, 255]],
       'green': [[37, 19, 15], [95, 255, 255]],
       'black': [[0, 0, 0], [179, 255, 35]],
     }
@@ -139,7 +144,7 @@ class ArmingDrone(tello.Tello):
         cv2. imshow('mask', mask)
         contours,_ = cv2.findContours(mask, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
         for pts in contours:
-            if cv2.contourArea(pts) < 1000:
+            if cv2.contourArea(pts) < 2000:
                 continue
             approx = cv2.approxPolyDP(pts, cv2.arcLength(pts, True) * 0.02, True)
             vtc = len(approx)
@@ -300,7 +305,7 @@ class ArmingDrone(tello.Tello):
 
         return detect, frame, number
 
-    def track_object(self, info, w, pError, objects = 'shape' ,speed = 20):
+    def track_object(self, info, pError, objects = 'shape' ,speed = 20):
         ''' Drone track object '''
 
         track = True
@@ -310,7 +315,7 @@ class ArmingDrone(tello.Tello):
         fb = 0
 
         # REGULATE YAW : yaw ( Angle )
-        error = x - w // 2
+        error = x - self.WIDTH // 2
         yaw = self.PID[0] * error + self.PID[1] * (error - pError)
         yaw = int(np.clip(yaw, -100, 100))
 
@@ -417,7 +422,6 @@ class ArmingDrone(tello.Tello):
             self.hover_sec(1)
             self.flip_back()
 
-        # Draw a rectangle in the left > bottom > right > top
         elif mission_number == 6:
             self.move_sec([0, 0, 30, 0], 1)
             self.hover_sec(1)
@@ -428,7 +432,7 @@ class ArmingDrone(tello.Tello):
         
         # flip left
         elif mission_number == 7:
-            self.move_sec([-60, 0, 0, 0], 1)
+            self.move_right(40)
             self.hover_sec(1)
             self.flip_left()
 
@@ -443,6 +447,10 @@ class ArmingDrone(tello.Tello):
             pass
 
     # Setter
+    def setWindows(self, width, height):
+        self.WIDTH = width
+        self.HEIGHT = height
+
     def setYoloModel(self, model_name):
         self.YOLO_CONFIG['model_name'] = model_name
 

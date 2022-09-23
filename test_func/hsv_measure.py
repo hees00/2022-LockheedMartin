@@ -7,8 +7,12 @@ def empty():
 
 def hsv_measure():
 
+    task = input('Select Detect task : (Image / Stream) : ')
+    task = task.lower()
+    drone = ArmingDrone()
+
     cv2.namedWindow("HSV")
-    cv2.resizeWindow("HSV", 640, 240)
+    cv2.resizeWindow("HSV", drone.WIDTH, drone.HEIGHT)
     # HUE : 색상
     cv2.createTrackbar("HUE Min", "HSV", 20, 179, empty)
     cv2.createTrackbar("HUE Max", "HSV", 40, 179, empty)
@@ -19,14 +23,20 @@ def hsv_measure():
     cv2.createTrackbar("VALUE Min", "HSV", 89, 255, empty)
     cv2.createTrackbar("VALUE Max", "HSV", 250, 255, empty)
 
-    drone = ArmingDrone()
-    drone.connect()
-
-    drone.streamon()
+    if task == 'stream':
+        drone.connect()
+        drone.streamon()
+    elif task == 'image':
+        path = input('Input image file path : ')
+        image = cv2.imread(f'./Resources/Images/{path}')
 
     while True:
-        frame = drone.get_frame_read().frame
-        frame = cv2.resize(frame, (600, 600))
+        if task == 'stream':
+            frame = drone.get_frame_read().frame
+        elif task == 'image':
+            frame = image
+            
+        frame = cv2.resize(frame, (drone.WIDTH, drone.HEIGHT))
         frameHsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
         h_min = cv2.getTrackbarPos("HUE Min", "HSV")
@@ -53,4 +63,4 @@ def hsv_measure():
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
 
-    cv2.destroyAllWindows()  
+    cv2.destroyAllWindows()
