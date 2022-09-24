@@ -17,7 +17,7 @@ def yolo_object_detect():
 
     while True:
           frame = drone.get_frame_read().frame
-          frame = cv2.resize(frame, (800, 640))
+          frame = cv2.resize(frame, (drone.WIDTH, drone.HEIGHT))
 
           _, frame, info = drone.detect_object(frame, objects = objects)
           print(info)

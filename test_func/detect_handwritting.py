@@ -19,7 +19,7 @@ def detect_handwritting():
 
         while True:
             frame = drone.get_frame_read().frame
-            frame = cv2.resize(frame, (800, 640))
+            frame = cv2.resize(frame, (drone.WIDTH, drone.HEIGHT))
 
             frame, number = drone.detect_number(frame)
 

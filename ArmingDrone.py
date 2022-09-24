@@ -309,6 +309,8 @@ class ArmingDrone(tello.Tello):
         ''' Drone track object '''
 
         track = True
+        deceleration = 2
+        standard_yaw = 40
 
         x, y = info[2]
         area = info[3]
@@ -353,6 +355,10 @@ class ArmingDrone(tello.Tello):
         print(f'yaw : {yaw}')
         print(f'TIME : {self.TIME}')
 
+        # In a curve, deceleration
+        if yaw > standard_yaw or yaw < -standard_yaw:
+            fb = fb // deceleration
+
         self.send_rc_control(0, fb, 0, yaw)
         return error, track
 
@@ -389,6 +395,7 @@ class ArmingDrone(tello.Tello):
 
         # After Back 30, Forward 30 [cm]
         if mission_number == 1:
+            print('MISSION : 1 - After Back 30, Forward 30 [cm]')
             self.move_sec([0, -30, 0, 0], 1)
             self.hover_sec(1)
             self.move_sec([0, 30, 0, 0], 1)
@@ -396,6 +403,7 @@ class ArmingDrone(tello.Tello):
 
         # Left and right 30 [cm]
         elif mission_number == 2:
+            print('MISSION : 2 - Left and right 30 [cm]')
             self.move_sec([30, 0, 0, 0], 1)
             self.hover_sec(1)
             self.move_sec([-30, 0, 0, 0], 1)
@@ -403,10 +411,12 @@ class ArmingDrone(tello.Tello):
 
         # 360 degree rotation
         elif mission_number == 3:
+            print('MISSION : 3 - 360 degree rotation')
             self.rotate_clockwise(360)
 
         # Draw a rectangle right > up > left > down
         elif mission_number == 4:
+            print('MISSION : 3 - Draw a rectangle : right > up > left > down')
             self.move_sec([-30, 0, 0, 0], 1)
             self.hover_sec(1)
             self.move_sec([0, 0, 30, 0], 1)
@@ -418,11 +428,14 @@ class ArmingDrone(tello.Tello):
 
         # Flip Backward
         elif mission_number == 5:
+            print('MISSION : 5 - Flip Backward')
             self.move_sec([0, 60, 0, 0], 1)
-            self.hover_sec(1)
+            self.hover_sec(0.5)
             self.flip_back()
 
+        # Up 30 > Flip Backward > Down 30 [cm]
         elif mission_number == 6:
+            print('MISSION : 6 - Up 30 > Flip Backward > Down 30 [cm]')
             self.move_sec([0, 0, 30, 0], 1)
             self.hover_sec(1)
             self.flip_back()
@@ -432,18 +445,21 @@ class ArmingDrone(tello.Tello):
         
         # flip left
         elif mission_number == 7:
+            print('MISSION : 7 - Flip left')
             self.move_right(40)
             self.hover_sec(1)
             self.flip_left()
 
         # Up and down 30 [cm]
         elif mission_number == 8:
+            print('MISSION : 8 - Up and down 30 [cm]')
             self.move_sec([0, 0, 30, 0], 1)
             self.hover_sec(1)
             self.move_sec([0, 0, -30, 0], 1)
 
         # Capture number
         elif mission_number == 9:
+            print('MISSION : 9 - Capture number 9')
             pass
 
     # Setter

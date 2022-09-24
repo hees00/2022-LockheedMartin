@@ -1,3 +1,4 @@
+from termios import VEOF
 from threading import Thread
 from ArmingDrone import ArmingDrone
 import cv2
@@ -56,20 +57,28 @@ VELOCITY = {
     'rotate_cw_slow': 40,
     'move_tracking': 25,
     'move_tracking_fast': 40,
+    'up': 50,
     'right': 60,
+    'left': 50,
     'forward': 70,
     'back': 40,
 }
 
 track = True
 seq = ('black', 'red', 'blue')
-toggle = True
+rot = ''
 
 ######################## READY ###########################
+
+save = input("Video Save ? (Y / N)").lower()
 
 # CONNECT TO TELLO
 drone = ArmingDrone()
 drone.connect()
+
+if save == 'y':
+    fourcc = cv2.VideoWriter_fourcc(*'DIVX')
+    out = cv2.VideoWriter(f'{PATH["videos"]}save.avi', fourcc, 35.0, (drone.WIDTH, drone.HEIGHT))
 
 # START VIDEO STREAMING
 drone.streamon()
@@ -80,8 +89,6 @@ print(f'Battery : {drone.get_battery()}/100')
 
 # TAKE OFF
 drone.takeoff()
-al_init = drone.get_height()
-print(al_init)
 
 ############## THREAD : VIDEO STREAMING #################
 def streaming():
@@ -121,6 +128,8 @@ def streaming():
 
                 # DISPLAY
                 cv2.imshow("TEAM : ARMING", frame)
+                if save == 'y':
+                    out.write(frame)
 
                 continue
 
@@ -149,7 +158,7 @@ def streaming():
                 mission = int(number)
 
                 if mission == 9:
-                    path = PATH['result'] + f'num9.png'
+                    path = PATH['result'] + 'num9.png'
                     cv2.imwrite(path, frame)
         
         ################ TRACKING & LANDING #################
@@ -162,6 +171,9 @@ def streaming():
         # DISPLAY
         cv2.imshow("TEAM : ARMING", frame)
 
+        if save == 'y':
+            out.write(frame)
+
         if cv2.waitKey(1) & 0xFF == ord('q'):
             print(f'Battery : {drone.get_battery()}/100')
             drone.land()
@@ -172,6 +184,9 @@ stream.start()
 
 ######################### DRONE MOVE #############################
 time.sleep(SLEEP['skip_frame'])
+
+al_init = drone.get_height()
+print(al_init)
 detect_marker = False
 i = 0
 
@@ -201,12 +216,12 @@ while True:
                         drone.send_rc_control(0, 0, VELOCITY['search_down_slow'], VELOCITY['rotate_cw_slow'])
                     else:
                         drone.hover_sec(0.5)
-                        toggle = False
+                        SWITCH['toggle'] = False
 
                 elif SWITCH['toggle'] is False:
                     if yaw < 45 and yaw > -35:
                         drone.send_rc_control(0, 0, VELOCITY['search_down_slow'],  VELOCITY['rotate_ccw_slow'])
-                        toggle = True
+                        SWITCH['toggle'] = True
             
             elif detect_qr is True:
                 print("Part : Hovering - Detect QR CODE → Hovering 5s")
@@ -221,18 +236,17 @@ while True:
                 if yaw >= -45:
                     rotate = 135 - yaw
                 elif yaw < -45:
-                    rotate = -180 - yaw
+                    rotate = -235 - yaw
 
                 # View in Flag Direction
                 drone.move_sec([0, 0, distance, 0], 1)
                 if yaw > 0:
                     drone.rotate_clockwise(rotate)
                 else:
-                    drone.rotate_counter_clockwise(rotate)
-                drone.hover_sec(0.5)
+                    drone.rotate_counter_clockwise(abs(rotate))
 
                 print("Part : Hovering - Finish")
-                toggle = True
+                SWITCH['toggle'] = True
 
                 # CHANGE ACTIVITY
                 activity = ACTIVITY[f'detect_{seq[i]}']
@@ -245,29 +259,43 @@ while True:
         if SWITCH['search_rotate'] is True and detect_marker is False:
             print(f'COURSE : RECOGNIZE FLAGS - Search {color} Marker')
 
+            if activity == ACTIVITY['detect_black']:
+                if SWITCH['toggle'] is True and yaw < -120 and yaw < 0:
+                    drone.hover_sec(0.5)
+                    drone.move_forward(50)
+                    SWITCH['toggle'] = False
+
+                elif SWITCH['toggle'] is False and yaw < 120 and yaw > 0:
+                    drone.hover_sec(0.5)
+                    drone.move_right(50)
+                    SWITCH['toggle'] = True
+
+            else:
+                # ↗
+                if yaw > 135 and yaw <= 180:
+                    SWITCH['toggle'] = False
+                # ↖
+                elif yaw > 40 and yaw <= 135:
+                    SWITCH['toggle'] = True
+                # ↘
+                elif yaw < -40 and yaw <= -135:
+                    SWITCH['toggle'] = False
+                # ↙
+                elif yaw > -40 and yaw <= 40:
+                    SWITCH['toggle'] = False
+                else:
+                    SWITCH['toggle'] = True
+
             # ROTATE ( 수정할 부분 )
-            if toggle is True:
+            if SWITCH['toggle'] is True:
                 rot = 'cw'
             else:
                 rot = 'ccw'
 
             drone.send_rc_control(0, 0, 0, VELOCITY[f'rotate_{rot}'])
-
-            if activity == ACTIVITY['detect_black']:
-                if toggle is True and yaw < -120 and yaw < 0:
-                    drone.hover_sec(0.5)
-                    drone.move_sec([0, 50, 0, 0], 1)
-                    drone.hover_sec(0.5)
-                    toggle = False
-
-                elif toggle is False and yaw < 120 and yaw > 0:
-                    drone.hover_sec(0.5)
-                    drone.move_sec([50, 0, 0, 0], 1)
-                    drone.hover_sec(0.5)
-                    toggle = True
-
+            
         elif detect_marker is True:
-            SWITCH['search_rotate'] = False
+            SWITCH['search_rotate'] = True
 
             if track is True:
                 if SWITCH['position'] is True:
@@ -303,6 +331,7 @@ while True:
             SWITCH['position'] = True
             SWITCH['detect_handwritting'] = False
             SWITCH['capture'] = True
+            SWITCH['toggle'] = True
             detect_marker = False
             mission = 0
             track = True
@@ -313,12 +342,24 @@ while True:
                 i += 1
 
             else:
-                course = COURSE['tracking_kau']                   
+                rotate = 0
+                if yaw <= 45:
+                    rotate = -135 - yaw
+                elif yaw > 45:
+                    rotate = 235 - yaw
+                
+                if rotate > 0:
+                    drone.rotate_clockwise(rotate)
+                elif rotate < 0:
+                    drone.rotate_counter_clockwise(abs(rotate))
+
+                drone.move_up(VELOCITY['up'])
+                course = COURSE['tracking_kau']
 
     ########### COURSE 2 : TRACKING KAU MARKER ############
     elif course == COURSE['tracking_kau']:
         if SWITCH['detect_kau'] is True:
-            drone.send_rc_control(0, 0, 0, VELOCITY['rotate_ccw'])
+            drone.send_rc_control(0, 0, 0, VELOCITY['rotate_cw'])
 
             if detect_objects['KAU'] is True:
                 SWITCH['detect_kau'] = False
@@ -332,16 +373,26 @@ while True:
 
                 if track is False:
                     print('Course : Tracking KAU - Finish !!!')
-
                     pError = 0
                     track = True
+
+                    drone.move_sec([0, 0, 10, 0], 1)
                     course = COURSE['find_f22']
 
     ################ COURSE 3 : LANDING F-22 #################
     elif course == COURSE['find_f22']:
         if SWITCH['detect_f22'] is True:
-            drone.send_rc_control(0, 0, 0, VELOCITY['rotate_ccw'])
 
+            if SWITCH['toggle'] is True and yaw < 180 and yaw >= 135:
+                drone.hover_sec(0.5)
+                SWITCH['toggle'] = False
+
+            if SWITCH['toggle'] is True:
+                drone.send_rc_control(0, 0, 0, VELOCITY[f'rotate_ccw'])
+                
+            else:
+                drone.send_rc_control(VELOCITY['left'], 0, 0, 0)
+            
             if detect_objects['F22'] is True:
                 SWITCH['detect_f22'] = False
                 drone.hover_sec(0.5)
