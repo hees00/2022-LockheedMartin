@@ -8,7 +8,7 @@ def tracking_object():
     w = 600
     h = 600
 
-    objects = input('Detect Objects (A380 / Apache / F22 / KAU / KT-1) [공백으로 구분] : ').split()
+    objects = input('Detect Objects (A380 / Apache / F22 / KAU / KT-1) : ').split()
 
     drone = ArmingDrone()
     drone.connect()
@@ -26,7 +26,7 @@ def tracking_object():
         print(info)
 
         if track is True and len(info) != 0:
-            pError, track = drone.track_object(info['KAU'], w, pError, objects = objects[0], speed = 40)
+            pError, track = drone.track_object(info[objects[0]], pError, objects = objects[0], speed = 40)
             
         elif track is False:
             print('Track is False')

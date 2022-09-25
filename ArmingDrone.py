@@ -41,7 +41,7 @@ class ArmingDrone(tello.Tello):
     AREA = {
         'shape': [26000, 27000],
         'kau': [26000, 27000],
-        'f22': [26000, 27000],
+        'f22': [26000, 26000],
     }
 
     PID = [0.2, 0.2, 0]
@@ -61,7 +61,7 @@ class ArmingDrone(tello.Tello):
     MIN_PIX = 28
 
     TIME = 0
-    TIME_LIMIT = 30
+    TIME_LIMIT = 25
 
     # Create YOLO DETECTOR MODEL
     yolo_model_path = f'./models/{YOLO_CONFIG["model_name"]}'
@@ -138,10 +138,9 @@ class ArmingDrone(tello.Tello):
         el = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (15, 15))
         tmp = cv2.erode(blur, el, iterations = 1)
 
-
         (_, mask) = cv2.threshold(tmp, 0, 255, cv2.THRESH_BINARY)
 
-        cv2. imshow('mask', mask)
+        cv2.imshow('mask', mask)
         contours,_ = cv2.findContours(mask, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
         for pts in contours:
             if cv2.contourArea(pts) < 2000:
@@ -255,8 +254,8 @@ class ArmingDrone(tello.Tello):
 
             kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (5,5))
             binary = cv2.morphologyEx(binary, cv2.MORPH_CLOSE, kernel)
+            cv2.imshow('No Crop', binary)
             binary = binary[start_y:, start_x: end_x]
-            cv2.imshow('digit_2', binary)
 
             contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
             max_area = 0
@@ -326,7 +325,7 @@ class ArmingDrone(tello.Tello):
         if area > fb_range[0] and area < fb_range[1]:
             fb = 0
 
-            if objects == 'shape':
+            if objects == 'shape' or objects == 'F22':
                 track = False
             else:
                 self.TIME += 1
@@ -338,11 +337,10 @@ class ArmingDrone(tello.Tello):
         elif area > fb_range[1]:
             fb = 0
 
-            if objects == 'shape':
+            if objects == 'shape' or objects == 'F22':
                 track = False
             else:
                 self.TIME += 1
-
 
         if self.TIME == self.TIME_LIMIT:
             track = False
@@ -356,8 +354,8 @@ class ArmingDrone(tello.Tello):
         print(f'TIME : {self.TIME}')
 
         # In a curve, deceleration
-        if yaw > standard_yaw or yaw < -standard_yaw:
-            fb = fb // deceleration
+        # if objects != 'shape' and (yaw > standard_yaw or yaw < -standard_yaw):
+        #     fb = fb // deceleration
 
         self.send_rc_control(0, fb, 0, yaw)
         return error, track
@@ -397,17 +395,17 @@ class ArmingDrone(tello.Tello):
         if mission_number == 1:
             print('MISSION : 1 - After Back 30, Forward 30 [cm]')
             self.move_sec([0, -30, 0, 0], 1)
-            self.hover_sec(1)
+            self.hover_sec(0.5)
             self.move_sec([0, 30, 0, 0], 1)
-            self.hover_sec(1)
+            self.hover_sec(0.5)
 
         # Left and right 30 [cm]
         elif mission_number == 2:
             print('MISSION : 2 - Left and right 30 [cm]')
             self.move_sec([30, 0, 0, 0], 1)
-            self.hover_sec(1)
+            self.hover_sec(0.5)
             self.move_sec([-30, 0, 0, 0], 1)
-            self.hover_sec(1)
+            self.hover_sec(0.5)
 
         # 360 degree rotation
         elif mission_number == 3:
@@ -416,37 +414,35 @@ class ArmingDrone(tello.Tello):
 
         # Draw a rectangle right > up > left > down
         elif mission_number == 4:
-            print('MISSION : 3 - Draw a rectangle : right > up > left > down')
+            print('MISSION : 4 - Draw a rectangle : right > up > left > down')
             self.move_sec([-30, 0, 0, 0], 1)
-            self.hover_sec(1)
+            self.hover_sec(0.5)
             self.move_sec([0, 0, 30, 0], 1)
-            self.hover_sec(1)
+            self.hover_sec(0.5)
             self.move_sec([30, 0, 0, 0], 1)
-            self.hover_sec(1)
+            self.hover_sec(0.5)
             self.move_sec([0, 0, -30, 0], 1)
-            self.hover_sec(1)
+            self.hover_sec(0.5)
 
         # Flip Backward
         elif mission_number == 5:
             print('MISSION : 5 - Flip Backward')
-            self.move_sec([0, 60, 0, 0], 1)
-            self.hover_sec(0.5)
             self.flip_back()
 
         # Up 30 > Flip Backward > Down 30 [cm]
         elif mission_number == 6:
             print('MISSION : 6 - Up 30 > Flip Backward > Down 30 [cm]')
             self.move_sec([0, 0, 30, 0], 1)
-            self.hover_sec(1)
+            self.hover_sec(0.5)
             self.flip_back()
-            self.hover_sec(1)
+            self.hover_sec(0.5)
             self.move_sec([0, 0, -30, 0], 1)
-            self.hover_sec(1)
+            self.hover_sec(0.5)
         
         # flip left
         elif mission_number == 7:
             print('MISSION : 7 - Flip left')
-            self.move_right(40)
+            self.move_sec([40, 0, 0, 0], 1)
             self.hover_sec(1)
             self.flip_left()
 

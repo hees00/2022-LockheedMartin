@@ -54,5 +54,5 @@ elif option == TEST['tracking_shape']:
 elif option == TEST['detect_qr']:
     qr_detect()
 
-elif option == TEST['detect_qr']:
+elif option == TEST['test_mission']:
     test_mission()
