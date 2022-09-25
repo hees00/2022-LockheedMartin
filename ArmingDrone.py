@@ -40,28 +40,28 @@ class ArmingDrone(tello.Tello):
 
     AREA = {
         'shape': [26000, 27000],
-        'kau': [26000, 27000],
-        'f22': [26000, 26000],
+        'kau': [24000, 25000],
+        'f22': [35000, 36000],
     }
 
-    PID = [0.2, 0.2, 0]
+    PID = [0.15, 0.15, 0]
 
     YOLO_CONFIG = {
         'model_name': 'yolov5n.onnx',
-        'conf_thres': 0.7,
+        'conf_thres': 0.75,
         'iou_thres': 0.3,
     }
 
     NUMBER_CONFIG = {
         'model_name': 'MnistCNN.onnx',
-        'minArea': 500,
+        'minArea': 100,
         'max_val': 10,
     }
 
     MIN_PIX = 28
 
     TIME = 0
-    TIME_LIMIT = 25
+    TIME_LIMIT = 10
 
     # Create YOLO DETECTOR MODEL
     yolo_model_path = f'./models/{YOLO_CONFIG["model_name"]}'
@@ -188,7 +188,10 @@ class ArmingDrone(tello.Tello):
 
         boxes, scores, class_ids = self.yolo_detector(frame)
         detect = {}
-        rectInfo = {}
+        rectInfo = {
+            'KAU': False,
+            'F22': False,
+        }
 
         if objects != 'all':
             classes = self.yolo_detector.get_classes_list()
@@ -254,7 +257,6 @@ class ArmingDrone(tello.Tello):
 
             kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (5,5))
             binary = cv2.morphologyEx(binary, cv2.MORPH_CLOSE, kernel)
-            cv2.imshow('No Crop', binary)
             binary = binary[start_y:, start_x: end_x]
 
             contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
@@ -276,8 +278,6 @@ class ArmingDrone(tello.Tello):
             new_x, new_y = x + w// 2, y + h // 2
             number_box = np.zeros((length, length,1), np.uint8)
             number_box = binary[new_y - length//2 : new_y + length//2, new_x - length//2 :new_x + length//2]
-
-            cv2.imshow('digit', number_box)
 
             blob = cv2.dnn.blobFromImage(number_box, 1 / 255., (28, 28))
             model.setInput(blob)
@@ -319,6 +319,10 @@ class ArmingDrone(tello.Tello):
         error = x - self.WIDTH // 2
         yaw = self.PID[0] * error + self.PID[1] * (error - pError)
         yaw = int(np.clip(yaw, -100, 100))
+
+        # REGULATE UP & DOWN : ud ( Up / Down )
+        
+
 
         fb_range = self.AREA[objects.lower()]
         # REGULATE FORWARD OR BACKWARD : fb ( Foward / Backward )
@@ -496,10 +500,9 @@ class ArmingDrone(tello.Tello):
 
     def __xyxy2xywh(self, coords):
         ''' Convert bounding box (x1, y1, x2, y2) to bounding box (x, y, w, h) '''
-
         x, y = coords[:2]
-        w = x - coords[2]
-        h = y - coords[3]
+        w = abs(x - coords[2])
+        h = abs(y - coords[3])
 
         return (x, y, w, h)
 
