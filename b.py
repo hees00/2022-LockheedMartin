@@ -94,6 +94,8 @@ print(f'Battery : {drone.get_battery()}/100')
 # TAKE OFF
 drone.takeoff()
 
+time.sleep(3)
+drone.rotate_counter_clockwise(135)
 ############## THREAD : VIDEO STREAMING #################
 def streaming():
     print('Team Arming : Start Video Stream')
@@ -104,7 +106,7 @@ def streaming():
     global course, detect_qr, message, detect_marker, info_object, info_circle,\
            activity, pError, mission, color, detect_hw, detect_objects
 
-    course = COURSE['recognition_flag']
+    course = COURSE['find_f22']
     activity = ACTIVITY['hovering']
     detect_objects = {
         'KAU': False,
@@ -340,9 +342,9 @@ while True:
 
             drone.hover_sec(0.5)
 
-            # CHANGE ACTIVITY
             if i < len(seq):
                 
+                # CHANGE ACTIVITY
                 drone.hover_sec(0.5)
                 detect_yaw = drone.get_yaw()
 
@@ -365,6 +367,7 @@ while True:
                 i += 1
 
             else:
+                
                 time.sleep(SLEEP['sync'])
 
                 # ROTATE TO LOOK AT KAU
@@ -391,7 +394,6 @@ while True:
 
     ########### COURSE 2 : TRACKING KAU MARKER ############
     elif course == COURSE['tracking_kau']:
-        # SEARCH KAU
         if SWITCH['detect_kau'] is True:
             print('Course : Tracking KAU Marker - Search KAU Marker')
             SWITCH['capture'] = True
@@ -419,7 +421,6 @@ while True:
                 SWITCH['detect_kau'] = False
                 drone.hover_sec(0.5)
 
-        # SUCCESS TO DETECT KAU
         elif SWITCH['detect_kau'] is False:
             print('Course : Tracking KAU Marker - Tracking . . .')
             time.sleep(SLEEP['sync'])
@@ -457,7 +458,6 @@ while True:
 
     ################ COURSE 3 : LANDING F-22 #################
     elif course == COURSE['find_f22']:
-        # SEARCH F22
         if SWITCH['detect_f22'] is True:
             print('Course : Landing F22 - Searching F22')
 
@@ -478,7 +478,6 @@ while True:
                 SWITCH['detect_f22'] = False
                 drone.hover_sec(1)
 
-        # SUCCESS TO DETECT F22
         elif SWITCH['detect_f22'] is False:
             print('Course : LANDING F22 - Tracking . . .')
 

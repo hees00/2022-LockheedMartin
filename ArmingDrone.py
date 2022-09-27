@@ -115,6 +115,7 @@ class ArmingDrone(tello.Tello):
         detect = False
         info = ((0, 0), (0, 0), (0, 0), 0)
         tri, rec, cir = False, False, False
+        start_y = 100
 
         if shapes == 'all':
             tri, rec, cir = True, True, True
@@ -254,6 +255,7 @@ class ArmingDrone(tello.Tello):
 
             kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (5,5))
             binary = cv2.morphologyEx(binary, cv2.MORPH_CLOSE, kernel)
+            # Crop Image
             binary = binary[start_y:, start_x: end_x]
 
             contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
