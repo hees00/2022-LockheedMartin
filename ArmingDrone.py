@@ -40,28 +40,28 @@ class ArmingDrone(tello.Tello):
 
     AREA = {
         'shape': [26000, 27000],
-        'kau': [24000, 25000],
-        'f22': [35000, 36000],
+        'kau': [27000, 28000],
+        'f22': [80000,81000],
     }
 
     PID = [0.15, 0.15, 0]
 
     YOLO_CONFIG = {
         'model_name': 'yolov5n.onnx',
-        'conf_thres': 0.75,
+        'conf_thres': 0.77,
         'iou_thres': 0.3,
     }
 
     NUMBER_CONFIG = {
         'model_name': 'MnistCNN.onnx',
-        'minArea': 100,
+        'minArea': 300,
         'max_val': 10,
     }
 
     MIN_PIX = 28
 
     TIME = 0
-    TIME_LIMIT = 10
+    TIME_LIMIT = 20
 
     # Create YOLO DETECTOR MODEL
     yolo_model_path = f'./models/{YOLO_CONFIG["model_name"]}'
@@ -143,7 +143,7 @@ class ArmingDrone(tello.Tello):
         cv2.imshow('mask', mask)
         contours,_ = cv2.findContours(mask, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
         for pts in contours:
-            if cv2.contourArea(pts) < 2000:
+            if cv2.contourArea(pts) < 1000:
                 continue
             approx = cv2.approxPolyDP(pts, cv2.arcLength(pts, True) * 0.02, True)
             vtc = len(approx)
@@ -188,10 +188,7 @@ class ArmingDrone(tello.Tello):
 
         boxes, scores, class_ids = self.yolo_detector(frame)
         detect = {}
-        rectInfo = {
-            'KAU': False,
-            'F22': False,
-        }
+        rectInfo = {}
 
         if objects != 'all':
             classes = self.yolo_detector.get_classes_list()
@@ -321,8 +318,6 @@ class ArmingDrone(tello.Tello):
         yaw = int(np.clip(yaw, -100, 100))
 
         # REGULATE UP & DOWN : ud ( Up / Down )
-        
-
 
         fb_range = self.AREA[objects.lower()]
         # REGULATE FORWARD OR BACKWARD : fb ( Foward / Backward )
@@ -356,12 +351,13 @@ class ArmingDrone(tello.Tello):
         print(f'Area : {area}')
         print(f'yaw : {yaw}')
         print(f'TIME : {self.TIME}')
-
+        
         # In a curve, deceleration
         # if objects != 'shape' and (yaw > standard_yaw or yaw < -standard_yaw):
         #     fb = fb // deceleration
 
         self.send_rc_control(0, fb, 0, yaw)
+
         return error, track
 
     def read_qr(self, frame):
@@ -431,6 +427,8 @@ class ArmingDrone(tello.Tello):
         # Flip Backward
         elif mission_number == 5:
             print('MISSION : 5 - Flip Backward')
+            self.move_sec([0, 45, 0, 0], 1)
+            self.hover_sec(0.5)
             self.flip_back()
 
         # Up 30 > Flip Backward > Down 30 [cm]
@@ -446,8 +444,8 @@ class ArmingDrone(tello.Tello):
         # flip left
         elif mission_number == 7:
             print('MISSION : 7 - Flip left')
-            self.move_sec([40, 0, 0, 0], 1)
-            self.hover_sec(1)
+            self.move_sec([60, 0, 0, 0], 1)
+            self.hover_sec(0.5)
             self.flip_left()
 
         # Up and down 30 [cm]

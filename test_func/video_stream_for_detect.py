@@ -15,7 +15,7 @@ def video_stream_for_detect():
 
     while True:
         frame = drone.get_frame_read().frame
-        frame = cv2.resize(frame, (600, 600))
+        frame = cv2.resize(frame, (drone.WIDTH, drone.HEIGHT))
 
         detect, frame, info = drone.identify_shapes(frame, shapes = 'circle', color = color.lower())
         

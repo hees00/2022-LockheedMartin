@@ -1,5 +1,6 @@
 from threading import Thread
 from ArmingDrone import ArmingDrone
+from math import sin, cos, radians
 import cv2
 import time
 
@@ -8,7 +9,7 @@ import time
 PATH = {
     'images': './Resources/Images/',
     'videos': './Resources/Videos/',
-    'result': './Resources/Results/',
+    'result': './Resources/Images/capture/',
 }
 
 COURSE = {
@@ -49,7 +50,7 @@ SLEEP = {
 VELOCITY = {
     'search_up': 20,
     'search_down': -20,
-    'search_down_slow': -15,
+    'search_down_slow': -12,
     'rotate_ccw': -70,
     'rotate_ccw_slow': -40,
     'rotate_cw': 70,
@@ -61,8 +62,10 @@ VELOCITY = {
     'left': 50,
     'forward': 70,
     'forward_far': 100,
-    'back': 35,
+    'back': 32,
 }
+
+DISTANCE = 95
 
 track = True
 seq = ('black', 'red', 'blue')
@@ -73,7 +76,7 @@ count = 0
 
 ######################## READY ###########################
 
-save = input("Video Save ? (Y / N) : ").lower()
+save = 'y'
 
 # CONNECT TO TELLO
 drone = ArmingDrone()
@@ -81,11 +84,10 @@ drone.connect()
 
 if save == 'y':
     fourcc = cv2.VideoWriter_fourcc(*'DIVX')
-    out = cv2.VideoWriter(f'{PATH["videos"]}save.avi', fourcc, 35.0, (drone.WIDTH, drone.HEIGHT))
+    out = cv2.VideoWriter(f'{PATH["videos"]}save.avi', fourcc, 30.0, (drone.WIDTH, drone.HEIGHT))
 
 # START VIDEO STREAMING
 drone.streamon()
-# drone.set_video_fps(drone.FPS_30)
 
 print(f'Battery : {drone.get_battery()}/100')
 
@@ -206,7 +208,7 @@ stream.start()
 time.sleep(SLEEP['skip_frame'])
 
 al_init = drone.get_height()
-print(al_init)
+print(f'Init Altitude : {al_init}')
 detect_marker = False
 i = 0
 
@@ -216,7 +218,6 @@ while True:
 
     # GET DRONE YAW
     yaw = drone.get_yaw()
-    print(SWITCH['capture'])
 
     ############# COURSE 1 : RECOGNIZE FLAGS ##############
     if course == COURSE['recognition_flag']:
@@ -282,12 +283,12 @@ while True:
             print(f'COURSE : RECOGNIZE FLAGS - Search {color} Marker')
 
             if activity == ACTIVITY['detect_black']:
-                if SWITCH['toggle'] is True and yaw < -120 and yaw < 0:
+                if SWITCH['toggle'] is True and yaw > -150 and yaw < 0:
                     drone.hover_sec(0.5)
                     drone.move_forward(40)
                     SWITCH['toggle'] = False
 
-                elif SWITCH['toggle'] is False and yaw < 110 and yaw > 0:
+                elif SWITCH['toggle'] is False and yaw < 90 and yaw > 0:
                     drone.hover_sec(0.5)
                     drone.move_right(40)
                     SWITCH['toggle'] = True
@@ -321,11 +322,10 @@ while True:
                 drone.send_rc_control(0, 0, VELOCITY['search_down'], 0)
                 
         if SWITCH['detect_hw'] is True and detect_hw is True:
-            print(f'Part : Detect {color} - Start Mission {mission}')
-            drone.hover_sec(0.5)
 
             # START MISSION
             drone.start_mission(mission)
+            print(f'Part : Detect {color} - Start Mission {mission}')
 
             # INITIAL VARIABLE
             SWITCH['search_rotate'] = True
@@ -337,6 +337,8 @@ while True:
             detect_hw = False
             mission = 0
             track = True
+
+            drone.hover_sec(0.5)
 
             if i < len(seq):
                 
@@ -351,9 +353,9 @@ while True:
                 elif detect_yaw > 135 and detect_yaw <= -135:   # ↗
                     SWITCH['toggle'] = False
                 elif detect_yaw <= -45 and detect_yaw > -135:   # ↘
-                    SWITCH['toggle'] = True
-                elif detect_yaw > -45 and detect_yaw < 45:      # ↙
                     SWITCH['toggle'] = False
+                elif detect_yaw > -45 and detect_yaw < 45:      # ↙
+                    SWITCH['toggle'] = True
 
                 al_now = drone.get_height()
                 distance = al_init - al_now + 10
@@ -364,16 +366,17 @@ while True:
 
             else:
                 
-                yaw = drone.get_yaw()
                 time.sleep(SLEEP['sync'])
 
                 # ROTATE TO LOOK AT KAU
-                rotate = 0
+                yaw = drone.get_yaw()
                 rotate = 0
                 if yaw <= 45 and yaw > -120:
                     rotate = -135 - yaw
-                elif (yaw > 45 and yaw <= 180) or (yaw < -150 and yaw > -180):
+                elif (yaw > 45 and yaw <= 180):
                     rotate = 225 - yaw
+                elif (yaw < -150 and yaw > -180):
+                    rotate = -135 - yaw
                 
                 if rotate >= 20 and rotate < 300:
                     drone.rotate_clockwise(rotate)
@@ -381,9 +384,10 @@ while True:
                     drone.rotate_counter_clockwise(abs(rotate))
 
                 SWITCH['capture'] = True
-                SLEEP['sync'] = 0.1
+                # SLEEP['sync'] = 0.1
                 drone.move_up(VELOCITY['up'])
                 course = COURSE['tracking_kau']
+                drone.setConf(0.6)
                 time.sleep(0.5)
 
     ########### COURSE 2 : TRACKING KAU MARKER ############
@@ -391,7 +395,7 @@ while True:
         if SWITCH['detect_kau'] is True:
             print('Course : Tracking KAU Marker - Search KAU Marker')
             SWITCH['capture'] = True
-
+            
             yaw = drone.get_yaw()
             if SWITCH['toggle'] is True:
                 drone.send_rc_control(0, 0, 0, VELOCITY['rotate_cw_slow'])
@@ -404,21 +408,22 @@ while True:
                 if yaw > -180 and yaw < -160:
                     SWITCH['toggle'] = True
                     count += 1
-
-            if detect_objects['KAU'] is True:
-                SWITCH['detect_kau'] = False
-                drone.hover_sec(0.5)
-
+            
             if count == 2:
                 yaw = drone.get_yaw()
                 drone.rotate_clockwise(abs(-135 - yaw))
                 drone.move_forward(VELOCITY['forward_far'])
                 count = 0
 
+            if detect_objects['KAU'] is True:
+                SWITCH['detect_kau'] = False
+                drone.hover_sec(0.5)
+
         elif SWITCH['detect_kau'] is False:
             print('Course : Tracking KAU Marker - Tracking . . .')
             time.sleep(SLEEP['sync'])
 
+            # TRACKING KAU
             if detect_objects['KAU'] is True and len(info_object) != 0:
                 pError, track = drone.track_object(info_object['KAU'], pError, objects = 'KAU' ,speed = VELOCITY['move_tracking_fast'])
 
@@ -433,19 +438,21 @@ while True:
                 rotate = 0
                 if yaw <= 45 and yaw > -120:
                     rotate = -135 - yaw
-                elif (yaw > 45 and yaw <= 180) or (yaw < -150 and yaw > -180):
+                elif (yaw > 45 and yaw <= 180):
                     rotate = 225 - yaw
+                elif (yaw < -150 and yaw > -180):
+                    rotate = -135 - yaw
                 
                 if rotate >= 20:
                     drone.rotate_clockwise(rotate)
                 elif rotate <= -20:
                     drone.rotate_counter_clockwise(abs(rotate))
 
-                drone.move_up(120)   # 지워줘야 하는 부분
-
-                # drone.move_sec([0, 0, 10, 0], 1)
+                drone.setConf(0.77)
+                time.sleep(0.5)
                 course = COURSE['find_f22']
-                time.sleep(1)
+                drone.move_down(20)
+                time.sleep(0.5)
 
     ################ COURSE 3 : LANDING F-22 #################
     elif course == COURSE['find_f22']:
@@ -453,29 +460,78 @@ while True:
             print('Course : Landing F22 - Searching F22')
 
             yaw = drone.get_yaw()
-            if SWITCH['toggle'] is True:
+            if SWITCH['toggle'] is False:
                 drone.send_rc_control(0, 0, 0, VELOCITY['rotate_cw_slow'])
 
-                if yaw > 0:
-                    SWITCH['toggle'] = False
+                if yaw > -180 and yaw < -160:
+                    SWITCH['toggle'] = True
 
-            elif SWITCH['toggle'] is False:
+            elif SWITCH['toggle'] is True:
                 drone.send_rc_control(0, 0, 0,  VELOCITY['rotate_ccw_slow'])
 
-                if yaw < -90:
-                    SWITCH['toggle'] = True
+                if yaw <= -90 and yaw > -110:
+                    SWITCH['toggle'] = False
 
             if detect_objects['F22'] is True:
                 SWITCH['detect_f22'] = False
-                drone.hover_sec(0.5)
+                drone.hover_sec(1)
 
         elif SWITCH['detect_f22'] is False:
             print('Course : LANDING F22 - Tracking . . .')
 
             if detect_objects['F22'] is True and len(info_object) != 0:
-                pError, track = drone.track_object(info_object['F22'], pError, objects = 'F22' ,speed = VELOCITY['move_tracking_fast'])
+                pError, track = drone.track_object(info_object['F22'], pError, objects = 'F22' ,speed = 25)
 
             if track is False:
                 print('Course : LANDING F22 - Finish !!!')
-                drone.hover()
-                # drone.land()
+                drone.hover_sec(1)
+                yaw = drone.get_yaw()
+
+                # Calculate degree and rotate
+                degree = 0                
+                rotate = 0
+                right = False
+                if yaw >= 135 and yaw <= 180:
+                    degree = yaw - 135
+                    rotate = 225 - yaw
+                elif yaw >= -180 and yaw < -135:
+                    degree = 225 + yaw
+                    rotate = -135 - yaw
+                elif yaw <= -45 and yaw >= -135:
+                    right = True
+                    degree = -35 - yaw
+                    rotate = -135 - yaw
+                    
+                # View in F22 Direction
+                if rotate >= 20:
+                    drone.rotate_clockwise(rotate)
+                elif rotate <= -20:
+                    drone.rotate_counter_clockwise(abs(rotate))
+                else:
+                    drone.move_sec([0, 0, 0, rotate], 1)
+
+                # Go landing zone
+                rad = radians(degree)
+                h = int(DISTANCE * sin(rad))
+                fb = h - 20
+
+                lr = int(DISTANCE * cos(rad)) - 15
+
+                fb = max(fb, 20)
+                lr = max(lr, 20)
+
+                time.sleep(0.5)
+                if right is False:
+                    drone.move_left(lr)
+                    # drone.move_sec([-lr, 0, 0, 0], 1)
+                else:
+                    drone.move_right(lr)
+                    # drone.move_sec([lr, 0, 0, 0], 1)
+
+                time.sleep(0.5)
+                drone.move_forward(fb)
+                time.sleep(0.5)
+                print(f'Rotate : {rotate} / Degree : {degree} / fb : {fb} / lr : {lr} / yaw : {yaw}')
+                print(f'Rotate : {rotate} / Degree : {degree} / fb : {fb} / lr : {lr} / yaw : {yaw}')
+                print('Arming Drone Landing !!!')
+                drone.land()
