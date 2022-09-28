@@ -13,7 +13,7 @@ while cap.isOpened():
 
     # Read frame from the video
     ret, frame = cap.read()
-
+    
     if not ret:
         break
 

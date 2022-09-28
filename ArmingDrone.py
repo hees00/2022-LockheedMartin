@@ -61,7 +61,7 @@ class ArmingDrone(tello.Tello):
     MIN_PIX = 28
 
     TIME = 0
-    TIME_LIMIT = 20
+    TIME_LIMIT = 35
 
     # Create YOLO DETECTOR MODEL
     yolo_model_path = f'./models/{YOLO_CONFIG["model_name"]}'
@@ -115,7 +115,6 @@ class ArmingDrone(tello.Tello):
         detect = False
         info = ((0, 0), (0, 0), (0, 0), 0)
         tri, rec, cir = False, False, False
-        start_y = 100
 
         if shapes == 'all':
             tri, rec, cir = True, True, True
@@ -144,7 +143,7 @@ class ArmingDrone(tello.Tello):
         cv2.imshow('mask', mask)
         contours,_ = cv2.findContours(mask, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
         for pts in contours:
-            if cv2.contourArea(pts) < 1000:
+            if cv2.contourArea(pts) < 1500:
                 continue
             approx = cv2.approxPolyDP(pts, cv2.arcLength(pts, True) * 0.02, True)
             vtc = len(approx)

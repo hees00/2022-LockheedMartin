@@ -62,7 +62,7 @@ VELOCITY = {
     'left': 50,
     'forward': 70,
     'forward_far': 100,
-    'back': 32,
+    'back': 30,
 }
 
 DISTANCE = 95
@@ -138,7 +138,6 @@ def streaming():
                 cv2.imshow("TEAM : ARMING", frame)
                 if save == 'y':
                     out.write(frame)
-
                 continue
 
             ##################### DETECT FLAGS #####################
@@ -168,6 +167,12 @@ def streaming():
 
                 if mission == 9:
                     path = PATH['result'] + 'num9.png'
+                    cv2.imwrite(path, frame)
+
+                # CAPTURE ONE MORE TIME
+                elif mission != 0 and mission != 9:
+                    print('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA')
+                    path = PATH['result'] + f'{color}_marker.png'
                     cv2.imwrite(path, frame)
         
             elif detect_marker is False:
@@ -230,6 +235,7 @@ while True:
 
                 if SWITCH['setting_yaw'] is True:
                     drone.move_back(VELOCITY['back'])
+                    time.sleep(0.5)
                     drone.rotate_counter_clockwise(45)
                     SWITCH['setting_yaw'] = False
 
