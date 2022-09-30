@@ -2,11 +2,11 @@
 
 team.ARMING - 1st Prize
 
-?뵔 Drone : Tello Edu
+✔ Drone : Tello Edu
 
-?뵔 Tello SDK Library : DJI-Tellopy
+✔ Tello SDK Library : DJI-Tellopy
 
-?뵔 Python Library
+✔ Python Library
 
 - Video Streaming / Processing : opencv-python
 - Detecting Object : yolov5
